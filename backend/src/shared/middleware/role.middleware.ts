@@ -1,12 +1,11 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { Role } from '../permissions';
 import { ApiError } from '../errors/ApiError';
-import { AuthenticatedRequest } from '../types';
 
-export const roleMiddleware = (...allowedRoles: Role[]) => {
-  return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+export const requireRole = (...allowedRoles: Role[]) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
-      return next(ApiError.unauthorized());
+      return next(ApiError.unauthorized('Authentication required'));
     }
 
     if (!allowedRoles.includes(req.user.role)) {
@@ -16,3 +15,5 @@ export const roleMiddleware = (...allowedRoles: Role[]) => {
     return next();
   };
 };
+
+export const roleMiddleware = requireRole;

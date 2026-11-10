@@ -4,9 +4,9 @@ import { ApiError } from '../errors/ApiError';
 
 export interface RequestUser {
   id: string;
+  userId: string;
   agencyId: string;
   role: Role;
-  userId?: string;
 }
 
 export type AuthUserPayload = RequestUser;
