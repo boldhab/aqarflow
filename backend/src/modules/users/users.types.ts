@@ -1,0 +1,12 @@
+import { Role } from '@/shared/permissions';
+
+export interface UserDTO {
+  id: string;
+  agencyId: string;
+  name: string;
+  email: string;
+  role: Role;
+  phone: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
