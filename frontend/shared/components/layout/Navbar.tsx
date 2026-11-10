@@ -1,7 +1,12 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/shared/hooks';
 
 export const Navbar: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -18,12 +23,25 @@ export const Navbar: React.FC = () => {
           <Link href="/contact" className="text-sm font-medium text-slate-700 hover:text-blue-600">
             Contact
           </Link>
-          <Link
-            href="/login"
-            className="text-sm font-medium px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Agent Portal
-          </Link>
+
+          {!isLoading && isAuthenticated && user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-700">{user.name}</span>
+              <Link
+                href="/dashboard"
+                className="text-sm font-medium px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Go to Workspace
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm font-medium px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Sign In
+            </Link>
+          )}
         </nav>
       </div>
     </header>

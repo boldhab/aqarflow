@@ -2,10 +2,11 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v
 
 export interface RequestOptions extends RequestInit {
   token?: string;
+  skipAuthRedirect?: boolean;
 }
 
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { token, headers, ...customConfig } = options;
+  const { token, headers, skipAuthRedirect, ...customConfig } = options;
 
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
@@ -16,7 +17,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   }
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
-    credentials: 'omit',
+    credentials: 'include',
     headers: {
       ...defaultHeaders,
       ...headers,
@@ -24,11 +25,27 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     ...customConfig,
   });
 
+  // Handle 401 Unauthorized for non-login endpoints
+  if (response.status === 401 && !endpoint.includes('/auth/login') && !skipAuthRedirect) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aqarflow:unauthorized'));
+      if (!window.location.pathname.startsWith('/login')) {
+        const currentPath = window.location.pathname;
+        const redirectParam = currentPath && currentPath !== '/' ? `?redirect=${encodeURIComponent(currentPath)}` : '';
+        window.location.href = `/login${redirectParam}`;
+      }
+    }
+  }
+
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || `Request failed with status ${response.status}`);
+    const errorMessage =
+      typeof data === 'object' && data !== null && 'message' in data && typeof data.message === 'string'
+        ? data.message
+        : `Request failed with status ${response.status}`;
+    throw new Error(errorMessage);
   }
 
-  return data;
+  return data as T;
 }

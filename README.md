@@ -28,6 +28,35 @@ AqarFlow organizes code by **business feature (module)** rather than technical f
 
 ---
 
+## Auth & Roles
+
+AqarFlow implements a secure, stateless authentication and authorization architecture designed for multi-tenant real estate agencies:
+
+### 1. HTTP-Only Cookie Approach
+- **Cookie Name**: `aqarflow_token`
+- **Cookie Flags**: `httpOnly: true`, `sameSite: "lax"`, `path: "/"`, `secure: process.env.NODE_ENV === "production"`, with `maxAge` matching `JWT_EXPIRES_IN` (default: 8 hours).
+- **Client Security**: Tokens are neither stored in `localStorage` nor in JavaScript-accessible `document.cookie`, mitigating token theft via XSS.
+- **Request Pipeline**: On every protected request, `authMiddleware` extracts the token from the cookie (with bearer fallback for API clients), verifies JWT signature, and checks the database to verify `user.isActive === true`. It attaches `req.user = { id, userId, agencyId, role }`.
+
+### 2. Role-Based Access Control (RBAC)
+- **Roles**:
+  - `ADMIN`: Full agency operational and administrative access (properties, leads, deals, visits, team management, and settings).
+  - `AGENT`: Day-to-day operational workflow access (properties, leads, visits, deals). Admin navigation and endpoints are restricted.
+- **Backend Guard**: `requireRole('ADMIN')` returns `403 Forbidden` if the authenticated user's role is not authorized.
+- **Frontend Guard**: The UI dynamically renders role-specific menus (e.g. `Sidebar` hides admin links from `AGENT`), while `middleware.ts` guards workspace routes for seamless UX.
+
+### 3. Tenant Isolation Rule (`scopeToAgency`)
+- **Strict Data Scoping**: All agency resources are isolated by `agencyId`.
+- **Tenant Scoping Helper**:
+  ```ts
+  const scope = scopeToAgency(req); // returns { agencyId: req.user.agencyId }
+  const properties = await prisma.property.findMany({
+    where: { ...scope, status: 'AVAILABLE' },
+  });
+  ```
+- **Cross-Tenant Barrier**: A user can never access or mutate data belonging to another agency, even if they know the record's primary key ID.
+
+
 ## How to Add a New Module
 
 ### 1. Adding a Backend Module
