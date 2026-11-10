@@ -5,7 +5,30 @@ export class AuthRepository {
   async findUserByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },
-      include: { agency: true },
+      include: {
+        agency: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findUserById(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      include: {
+        agency: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
     });
   }
 
@@ -30,7 +53,17 @@ export class AuthRepository {
           email: data.email,
           password: hashedPassword,
           role: 'ADMIN',
+          isActive: true,
           agencyId: agency.id,
+        },
+        include: {
+          agency: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
         },
       });
 
