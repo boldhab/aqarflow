@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 
@@ -20,6 +21,7 @@ export const createApp = (): Application => {
       credentials: true,
     })
   );
+  app.use(cookieParser());
   app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
