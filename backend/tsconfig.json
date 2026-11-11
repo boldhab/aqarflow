@@ -3,13 +3,11 @@
     "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022"],
-    "moduleResolution": "node",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/modules/*": ["src/modules/*"],
-      "@/shared/*": ["src/shared/*"],
-      "@/config/*": ["src/config/*"]
+      "@/*": ["./src/*"],
+      "@/modules/*": ["./src/modules/*"],
+      "@/shared/*": ["./src/shared/*"],
+      "@/config/*": ["./src/config/*"]
     },
     "outDir": "./dist",
     "rootDir": "./src",
