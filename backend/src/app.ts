@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -21,12 +21,12 @@ export const createApp = (): Application => {
 
   const allowedOrigins = (env.FRONTEND_URL || '')
     .split(',')
-    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .map((origin: string) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean);
 
   app.use(
     cors({
-      origin: (origin, callback) => {
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Allow requests with no origin (mobile apps, server-to-server, curl)
         if (!origin) return callback(null, true);
         const cleanOrigin = origin.replace(/\/$/, '');
@@ -51,7 +51,7 @@ export const createApp = (): Application => {
   // Static uploads directory with safe headers
   app.use(
     '/uploads',
-    (_req: Request, res: Response, next) => {
+    (_req: Request, res: Response, next: NextFunction) => {
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('X-Content-Type-Options', 'nosniff');
       next();
