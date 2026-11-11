@@ -9,7 +9,8 @@ export class UsersController {
   list = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
-      const users = await this.service.getAgencyUsers(req.user.agencyId);
+      const role = typeof req.query.role === 'string' ? req.query.role : undefined;
+      const users = await this.service.getAgencyUsers(req.user.agencyId, role);
       return res.status(200).json({ success: true, data: users });
     } catch (error) {
       return next(error);

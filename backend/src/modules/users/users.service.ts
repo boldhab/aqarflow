@@ -1,14 +1,14 @@
 import { usersRepository, UsersRepository } from './users.repository';
 import { CreateUserInput, UpdateUserInput } from './users.schema';
-import { UserDTO } from './users.types';
+import { UserDTO, AgentOptionDTO } from './users.types';
 import { hashPassword } from '@/shared/utils';
 import { ApiError } from '@/shared/errors';
 
 export class UsersService {
   constructor(private repo: UsersRepository = usersRepository) {}
 
-  async getAgencyUsers(agencyId: string): Promise<UserDTO[]> {
-    return this.repo.findAllByAgency(agencyId);
+  async getAgencyUsers(agencyId: string, role?: string): Promise<UserDTO[] | AgentOptionDTO[]> {
+    return this.repo.findAllByAgency(agencyId, role);
   }
 
   async getUserById(id: string, agencyId: string): Promise<UserDTO> {
