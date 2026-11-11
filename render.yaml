@@ -3,7 +3,7 @@ services:
     name: aqarflow-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     preDeployCommand: npx prisma migrate deploy
     startCommand: npm run start
     healthCheckPath: /health
