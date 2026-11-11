@@ -26,8 +26,16 @@ export const createApp = (): Application => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Static uploads directory
-  app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+  // Static uploads directory with safe headers
+  app.use(
+    '/uploads',
+    (_req: Request, res: Response, next) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      next();
+    },
+    express.static(path.resolve(process.cwd(), 'uploads'))
+  );
 
   // Health check
   app.get('/health', (_req: Request, res: Response) => {

@@ -13,6 +13,7 @@ const router = Router();
 router.use('/auth', authRouter);
 router.use('/users', usersRouter);
 router.use('/properties', propertiesRouter);
+router.use('/public', publicPortalRouter);
 router.use('/portal', publicPortalRouter);
 router.use('/leads', leadsRouter);
 router.use('/visits', visitsRouter);
