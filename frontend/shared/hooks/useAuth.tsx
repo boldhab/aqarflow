@@ -42,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleUnauthorized = () => {
       setUser(null);
+      if (typeof document !== 'undefined') {
+        document.cookie = 'aqarflow_session=; path=/; max-age=0; SameSite=Lax';
+      }
     };
 
     window.addEventListener('aqarflow:unauthorized', handleUnauthorized);
@@ -56,6 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.login(credentials);
       const loggedInUser = response.data.user;
       setUser(loggedInUser);
+      if (typeof document !== 'undefined') {
+        document.cookie = 'aqarflow_session=1; path=/; max-age=604800; SameSite=Lax';
+      }
       return loggedInUser;
     } finally {
       setIsLoading(false);
@@ -67,6 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } finally {
+      if (typeof document !== 'undefined') {
+        document.cookie = 'aqarflow_session=; path=/; max-age=0; SameSite=Lax';
+      }
       setUser(null);
       setIsLoading(false);
     }

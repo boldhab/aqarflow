@@ -16,7 +16,7 @@ export class AuthController {
       res.cookie('aqarflow_token', token, {
         httpOnly: true,
         sameSite: env.COOKIE_SAMESITE,
-        secure: env.NODE_ENV === 'production',
+        secure: env.NODE_ENV === 'production' || env.COOKIE_SAMESITE === 'none',
         path: '/',
         maxAge,
       });
@@ -52,7 +52,7 @@ export class AuthController {
       res.clearCookie('aqarflow_token', {
         httpOnly: true,
         sameSite: env.COOKIE_SAMESITE,
-        secure: env.NODE_ENV === 'production',
+        secure: env.NODE_ENV === 'production' || env.COOKIE_SAMESITE === 'none',
         path: '/',
       });
 
@@ -85,7 +85,7 @@ export class AuthController {
       res.cookie('aqarflow_token', token, {
         httpOnly: true,
         sameSite: env.COOKIE_SAMESITE,
-        secure: env.NODE_ENV === 'production',
+        secure: env.NODE_ENV === 'production' || env.COOKIE_SAMESITE === 'none',
         path: '/',
         maxAge,
       });

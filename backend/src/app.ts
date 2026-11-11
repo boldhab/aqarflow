@@ -14,10 +14,32 @@ import { apiRouter } from './routes';
 export const createApp = (): Application => {
   const app = express();
 
+  // Trust reverse proxy (Render, AWS, Heroku) for secure cookies and accurate client IP
+  app.set('trust proxy', 1);
+
   app.use(helmet());
+
+  const allowedOrigins = (env.FRONTEND_URL || '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
   app.use(
     cors({
-      origin: env.FRONTEND_URL,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, server-to-server, curl)
+        if (!origin) return callback(null, true);
+        const cleanOrigin = origin.replace(/\/$/, '');
+        if (
+          allowedOrigins.includes(cleanOrigin) ||
+          allowedOrigins.includes('*') ||
+          (env.NODE_ENV !== 'production' && cleanOrigin.includes('localhost')) ||
+          cleanOrigin.endsWith('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, false);
+      },
       credentials: true,
     })
   );

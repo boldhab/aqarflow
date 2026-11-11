@@ -11,7 +11,7 @@ export const env = {
     'postgresql://postgres:1234@localhost:5432/aqarflow?schema=public&host=/tmp',
   JWT_SECRET: process.env.JWT_SECRET || 'aqarflow_development_jwt_secret_key_12345',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
-  COOKIE_SAMESITE: ((process.env.COOKIE_SAMESITE?.toLowerCase() as 'lax' | 'strict' | 'none') || 'lax'),
+  COOKIE_SAMESITE: ((process.env.COOKIE_SAMESITE?.toLowerCase() as 'lax' | 'strict' | 'none') || (process.env.NODE_ENV === 'production' ? 'none' : 'lax')),
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
   DEFAULT_AGENCY_SLUG: process.env.DEFAULT_AGENCY_SLUG || 'demo-agency',
 };

@@ -6,7 +6,9 @@ import type { NextRequest } from 'next/server';
 // routes and redirecting already-authenticated users away from the login page.
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const token = request.cookies.get('aqarflow_token')?.value;
+  const token =
+    request.cookies.get('aqarflow_token')?.value ||
+    request.cookies.get('aqarflow_session')?.value;
 
   const protectedRoutes = ['/dashboard', '/leads', '/visits', '/deals'];
   const isProtectedRoute = protectedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));

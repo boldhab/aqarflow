@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: aqarflow-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    preDeployCommand: npx prisma migrate deploy
+    startCommand: npm run start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: FRONTEND_URL
+        sync: false
