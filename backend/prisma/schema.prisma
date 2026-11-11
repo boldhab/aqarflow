@@ -16,9 +16,34 @@ enum PropertyStatus {
   DRAFT
   AVAILABLE
   RESERVED
+  UNDER_OFFER
   SOLD
   RENTED
+  LEASED
   INACTIVE
+}
+
+enum PropertyPurpose {
+  SALE
+  RENT
+  LEASE
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  VILLA
+  PLOT
+  COMMERCIAL
+  OFFICE
+  SHOP
+}
+
+enum AreaUnit {
+  SQFT
+  SQM
+  MARLA
+  KANAL
 }
 
 enum LeadStage {
@@ -43,6 +68,18 @@ enum DealStatus {
   LOST
 }
 
+enum PreferredContact {
+  PHONE
+  EMAIL
+  WHATSAPP
+}
+
+enum LeadSource {
+  WEBSITE
+  MANUAL
+}
+
+
 model Agency {
   id             String          @id @default(uuid())
   name           String
@@ -53,13 +90,14 @@ model Agency {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  users          User[]
-  properties     Property[]
-  propertyImages PropertyImage[]
-  leads          Lead[]
-  leadNotes      LeadNote[]
-  visits         Visit[]
-  deals          Deal[]
+  users                   User[]
+  properties              Property[]
+  propertyImages          PropertyImage[]
+  propertyStatusHistories PropertyStatusHistory[]
+  leads                   Lead[]
+  leadNotes               LeadNote[]
+  visits                  Visit[]
+  deals                   Deal[]
 
   @@map("agencies")
 }
@@ -77,43 +115,59 @@ model User {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  assignedLeads    Lead[]       @relation("AssignedLeads")
-  leadNotes        LeadNote[]
-  visits           Visit[]      @relation("AgentVisits")
-  deals            Deal[]       @relation("AgentDeals")
-  createdProperties Property[]  @relation("CreatedProperties")
+  assignedLeads         Lead[]                  @relation("AssignedLeads")
+  leadNotes             LeadNote[]
+  visits                Visit[]                 @relation("AgentVisits")
+  deals                 Deal[]                  @relation("AgentDeals")
+  createdProperties     Property[]              @relation("CreatedProperties")
+  assignedProperties    Property[]              @relation("AssignedProperties")
+  propertyStatusChanges PropertyStatusHistory[] @relation("StatusChanges")
 
   @@index([agencyId])
   @@map("users")
 }
 
 model Property {
-  id          String         @id @default(uuid())
-  agencyId    String
-  agency      Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  createdById String?
-  createdBy   User?          @relation("CreatedProperties", fields: [createdById], references: [id], onDelete: SetNull)
-  title       String
-  description String?
-  price       Decimal        @db.Decimal(12, 2)
-  currency    String         @default("USD")
-  type        String         @default("APARTMENT")
-  status      PropertyStatus @default(AVAILABLE)
-  bedrooms    Int?
-  bathrooms   Int?
-  areaSqFt    Float?
-  address     String?
-  city        String?
-  country     String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id              String          @id @default(uuid())
+  agencyId        String
+  agency          Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  referenceCode   String
+  title           String
+  description     String?
+  purpose         PropertyPurpose @default(SALE)
+  type            PropertyType    @default(APARTMENT)
+  status          PropertyStatus  @default(AVAILABLE)
+  isPublished     Boolean         @default(false)
+  price           Decimal         @db.Decimal(14, 2)
+  currency        String          @default("PKR")
+  areaValue       Decimal         @default(0) @db.Decimal(12, 2)
+  areaUnit        AreaUnit        @default(SQFT)
+  bedrooms        Int?
+  bathrooms       Int?
+  address         String?
+  city            String?
+  locality        String?
+  latitude        Float?
+  longitude       Float?
+  assignedAgentId String?
+  assignedAgent   User?           @relation("AssignedProperties", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  createdById     String?
+  createdBy       User?           @relation("CreatedProperties", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  images      PropertyImage[]
-  visits      Visit[]
-  deals       Deal[]
+  images        PropertyImage[]
+  statusHistory PropertyStatusHistory[]
+  visits        Visit[]
+  deals         Deal[]
+  leads         Lead[]
 
+  @@unique([agencyId, referenceCode])
   @@index([agencyId])
-  @@index([agencyId, status])
+  @@index([status])
+  @@index([city])
+  @@index([purpose])
   @@map("properties")
 }
 
@@ -124,8 +178,10 @@ model PropertyImage {
   propertyId String
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   url        String
+  storageKey String?
   caption    String?
   isPrimary  Boolean  @default(false)
+  sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
 
   @@index([agencyId])
@@ -133,26 +189,52 @@ model PropertyImage {
   @@map("property_images")
 }
 
+model PropertyStatusHistory {
+  id          String         @id @default(uuid())
+  propertyId  String
+  property    Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  agencyId    String
+  agency      Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  fromStatus  PropertyStatus
+  toStatus    PropertyStatus
+  changedById String?
+  changedBy   User?          @relation("StatusChanges", fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+
+  @@index([agencyId])
+  @@index([propertyId])
+  @@map("property_status_history")
+}
+
 model Lead {
-  id           String     @id @default(uuid())
-  agencyId     String
-  agency       Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  assignedToId String?
-  assignedTo   User?      @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
-  name         String
-  email        String?
-  phone        String
-  stage        LeadStage  @default(NEW)
-  source       String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id               String           @id @default(uuid())
+  agencyId         String
+  agency           Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  propertyId       String?
+  property         Property?        @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  assignedAgentId  String?
+  assignedAgent    User?            @relation("AssignedLeads", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  name             String
+  phone            String
+  email            String?
+  message          String?
+  preferredContact PreferredContact @default(PHONE)
+  purpose          PropertyPurpose?
+  source           LeadSource       @default(WEBSITE)
+  stage            LeadStage        @default(NEW)
+  normalizedPhone  String?
+  normalizedEmail  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   notes        LeadNote[]
   visits       Visit[]
   deals        Deal[]
 
   @@index([agencyId])
-  @@index([agencyId, stage])
+  @@index([stage])
+  @@index([propertyId])
+  @@index([normalizedPhone])
   @@map("leads")
 }
 

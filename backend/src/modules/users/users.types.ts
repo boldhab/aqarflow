@@ -10,3 +10,9 @@ export interface UserDTO {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface AgentOptionDTO {
+  id: string;
+  name: string;
+}
+

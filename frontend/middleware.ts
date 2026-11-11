@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get('aqarflow_token')?.value;
 
-  const protectedRoutes = ['/dashboard', '/properties', '/leads', '/visits', '/deals'];
+  const protectedRoutes = ['/dashboard', '/leads', '/visits', '/deals'];
   const isProtectedRoute = protectedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   if (isProtectedRoute && !token) {

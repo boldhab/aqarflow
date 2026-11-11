@@ -1,6 +1,7 @@
 import React from 'react';
-import { LeadPipeline } from '@/modules/leads';
+import { LeadList } from '@/modules/leads';
 
 export default function WorkspaceLeadsPage() {
-  return <LeadPipeline />;
+  return <LeadList />;
 }
+

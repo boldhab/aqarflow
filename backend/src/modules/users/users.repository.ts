@@ -24,7 +24,18 @@ export class UsersRepository {
     });
   }
 
-  async findAllByAgency(agencyId: string) {
+  async findAllByAgency(agencyId: string, role?: string) {
+    if (role === 'AGENT') {
+      return prisma.user.findMany({
+        where: { agencyId, role: 'AGENT', isActive: true },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: { name: 'asc' },
+      });
+    }
+
     return prisma.user.findMany({
       where: { agencyId },
       select: {

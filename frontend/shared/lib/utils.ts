@@ -19,3 +19,10 @@ export function formatDate(date: string | Date): string {
     dateStyle: 'medium',
   }).format(new Date(date));
 }
+
+export function formatPKR(amount: number | string): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return 'PKR 0';
+  return `PKR ${new Intl.NumberFormat('en-PK').format(num)}`;
+}
+

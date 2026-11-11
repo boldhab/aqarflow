@@ -13,4 +13,5 @@ export const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
   COOKIE_SAMESITE: ((process.env.COOKIE_SAMESITE?.toLowerCase() as 'lax' | 'strict' | 'none') || 'lax'),
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  DEFAULT_AGENCY_SLUG: process.env.DEFAULT_AGENCY_SLUG || 'demo-agency',
 };
