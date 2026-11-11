@@ -9,7 +9,10 @@ export class LeadsController {
   list = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
-      const result = await this.service.listLeads(req.user.agencyId, req.query as any);
+      const result = await this.service.listLeads(
+        { userId: req.user.userId, agencyId: req.user.agencyId, role: req.user.role },
+        req.query as any
+      );
       return res.status(200).json({ success: true, data: result });
     } catch (error) {
       return next(error);
@@ -19,7 +22,11 @@ export class LeadsController {
   getById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
-      const lead = await this.service.getLead(req.params.id, req.user.agencyId);
+      const lead = await this.service.getLead(req.params.id, {
+        userId: req.user.userId,
+        agencyId: req.user.agencyId,
+        role: req.user.role,
+      });
       return res.status(200).json({ success: true, data: lead });
     } catch (error) {
       return next(error);
@@ -29,7 +36,10 @@ export class LeadsController {
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
-      const lead = await this.service.createLead(req.user.agencyId, req.body);
+      const lead = await this.service.createLead(
+        { userId: req.user.userId, agencyId: req.user.agencyId, role: req.user.role },
+        req.body
+      );
       return res.status(201).json({ success: true, data: lead });
     } catch (error) {
       return next(error);
@@ -39,7 +49,11 @@ export class LeadsController {
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
-      const lead = await this.service.updateLead(req.params.id, req.user.agencyId, req.body);
+      const lead = await this.service.updateLead(
+        req.params.id,
+        { userId: req.user.userId, agencyId: req.user.agencyId, role: req.user.role },
+        req.body
+      );
       return res.status(200).json({ success: true, data: lead });
     } catch (error) {
       return next(error);
@@ -49,7 +63,12 @@ export class LeadsController {
   assign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
-      const lead = await this.service.assignLead(req.params.id, req.user.agencyId, req.body.assignedToId);
+      const agentId = req.body.assignedAgentId || req.body.assignedToId;
+      const lead = await this.service.assignLead(
+        req.params.id,
+        { userId: req.user.userId, agencyId: req.user.agencyId, role: req.user.role },
+        agentId
+      );
       return res.status(200).json({ success: true, data: lead });
     } catch (error) {
       return next(error);
@@ -61,7 +80,7 @@ export class LeadsController {
       if (!req.user) throw ApiError.unauthorized();
       const note = await this.service.addNote(
         req.params.id,
-        req.user.agencyId,
+        { userId: req.user.userId, agencyId: req.user.agencyId, role: req.user.role },
         req.user.userId,
         req.body.content
       );

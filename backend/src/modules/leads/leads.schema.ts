@@ -13,11 +13,15 @@ export const leadStageEnum = z.enum([
 export const createLeadSchema = z.object({
   body: z.object({
     name: z.string().min(2, 'Name is required'),
-    email: z.string().email().optional(),
+    email: z.string().email().optional().nullable().or(z.literal('')),
     phone: z.string().min(5, 'Phone number is required'),
     stage: leadStageEnum.default('NEW'),
-    source: z.string().optional(),
-    assignedToId: z.string().uuid().optional(),
+    source: z.enum(['WEBSITE', 'MANUAL']).default('MANUAL'),
+    propertyId: z.string().uuid().optional().nullable(),
+    assignedAgentId: z.string().uuid().optional().nullable(),
+    assignedToId: z.string().uuid().optional().nullable(),
+    message: z.string().optional().nullable(),
+    preferredContact: z.enum(['PHONE', 'EMAIL', 'WHATSAPP']).default('PHONE'),
   }),
 });
 
@@ -33,7 +37,8 @@ export const assignLeadSchema = z.object({
     id: z.string().uuid(),
   }),
   body: z.object({
-    assignedToId: z.string().uuid('Valid user ID is required'),
+    assignedAgentId: z.string().uuid().optional(),
+    assignedToId: z.string().uuid().optional(),
   }),
 });
 
@@ -49,7 +54,9 @@ export const addLeadNoteSchema = z.object({
 export const listLeadsQuerySchema = z.object({
   query: z.object({
     stage: leadStageEnum.optional(),
+    assignedAgentId: z.string().uuid().optional(),
     assignedToId: z.string().uuid().optional(),
+    propertyId: z.string().uuid().optional(),
     page: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 1)),
     limit: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 20)),
   }),
@@ -58,5 +65,4 @@ export const listLeadsQuerySchema = z.object({
 export type CreateLeadInput = z.infer<typeof createLeadSchema>['body'];
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>['body'];
 export type AssignLeadInput = z.infer<typeof assignLeadSchema>['body'];
-export type AddLeadNoteInput = z.infer<typeof addLeadNoteSchema>['body'];
 export type ListLeadsQuery = z.infer<typeof listLeadsQuerySchema>['query'];

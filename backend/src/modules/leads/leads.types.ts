@@ -1,4 +1,4 @@
-import { LeadStage } from '@prisma/client';
+import { LeadStage, LeadSource, PreferredContact } from '@prisma/client';
 
 export interface LeadDTO {
   id: string;
@@ -6,9 +6,15 @@ export interface LeadDTO {
   name: string;
   email: string | null;
   phone: string;
+  normalizedPhone?: string | null;
+  normalizedEmail?: string | null;
   stage: LeadStage;
-  source: string | null;
-  assignedToId: string | null;
+  source: LeadSource;
+  propertyId?: string | null;
+  assignedAgentId?: string | null;
+  assignedToId?: string | null;
+  message?: string | null;
+  preferredContact?: PreferredContact;
   createdAt: Date;
   updatedAt: Date;
 }
