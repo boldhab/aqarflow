@@ -54,7 +54,7 @@ export class PublicPortalRepository {
     }
 
     if (query.bedrooms !== undefined) {
-      where.bedrooms = query.bedrooms;
+      where.bedrooms = { gte: query.bedrooms };
     }
 
     if (query.minPrice !== undefined || query.maxPrice !== undefined) {
