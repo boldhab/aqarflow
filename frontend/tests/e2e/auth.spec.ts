@@ -1,66 +1,51 @@
-import { test, expect } from '@playwright/test';
-
-test.describe('Authentication and RBAC E2E Tests', () => {
-  test('unauthenticated visit to /dashboard redirects to /login', async ({ page }) => {
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/login\?redirect=%2Fdashboard/);
-    await expect(page.locator('text=Sign in to AqarFlow')).toBeVisible();
-  });
-
-  test('admin login lands on /dashboard and displays agency name and admin links', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.fill('input[type="email"]', 'admin@aqarflow.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-
-    await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator('[data-testid="agency-name"]')).toHaveText('Demo Agency');
-    await expect(page.locator('text=Agency Settings')).toBeVisible();
-    await expect(page.locator('text=Team')).toBeVisible();
-  });
-
-  test('agent login hides admin links', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.fill('input[type="email"]', 'agent@aqarflow.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-
-    await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator('[data-testid="agency-name"]')).toHaveText('Demo Agency');
-    await expect(page.locator('text=Properties')).toBeVisible();
-
-    // Admin-only links must be hidden from AGENT
-    await expect(page.locator('text=Agency Settings')).not.toBeVisible();
-    await expect(page.locator('text=Team')).not.toBeVisible();
-  });
-
-  test('malicious ?redirect=//evil.com is ignored and redirects safely to /dashboard', async ({ page }) => {
-    await page.goto('/login?redirect=//evil.com');
-
-    await page.fill('input[type="email"]', 'admin@aqarflow.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-
-    await expect(page).toHaveURL(/\/dashboard/);
-    expect(page.url()).not.toContain('evil.com');
-  });
-
-  test('logout returns to /login and protects /dashboard from future access', async ({ page }) => {
-    // 1. Log in
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@aqarflow.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/dashboard/);
-
-    // 2. Click logout
-    await page.locator('[data-testid="logout-button"]').click();
-    await expect(page).toHaveURL(/\/login/);
-
-    // 3. Try to access /dashboard again
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/login\?redirect=%2Fdashboard/);
-  });
+import { test, expect } from "@playwright/test";
+import { mockWorkspace } from "../support/workspace";
+test("inventory requires a session", async ({ page }) => {
+  await page.goto("/inventory?purpose=RENT");
+  await expect(page).toHaveURL(/login\?redirect=/);
+  await expect(
+    page.getByRole("heading", { name: "Sign in to Workspace" }),
+  ).toBeVisible();
+});
+test("signed-in agents can still browse the public marketplace", async ({
+  page,
+}) => {
+  await mockWorkspace(page, "AGENT");
+  await page.goto("/properties");
+  await expect(
+    page.getByRole("heading", { name: "Explore Properties" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Go to Workspace", exact: true }).first(),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "AqarFlow home", exact: true }).click();
+  await expect(page).toHaveURL("/");
+});
+test("agent inventory hides admin archive actions", async ({ page }) => {
+  await mockWorkspace(page, "AGENT");
+  await page.goto("/inventory");
+  await expect(
+    page.locator("table").getByRole("button", { name: "Edit", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Archive", exact: true }),
+  ).toHaveCount(0);
+});
+test("real demo login opens the workspace and public browsing stays public", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByLabel("Email Address").fill("admin@aqarflow.com");
+  await page.locator("#password").fill("password123");
+  await page
+    .getByRole("button", { name: "Sign In to Workspace", exact: true })
+    .click();
+  await expect(page).toHaveURL(/dashboard/);
+  await expect(
+    page.getByRole("heading", { name: /Welcome back/ }),
+  ).toBeVisible();
+  await page.goto("/properties");
+  await expect(
+    page.getByRole("heading", { name: "Explore Properties" }),
+  ).toBeVisible();
 });

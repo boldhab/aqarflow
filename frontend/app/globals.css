@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
+  --background: #FAF9F6;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #0ea5e9;
+  --ring: #1D8061;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
   --radius: 0.5rem;
@@ -29,13 +29,21 @@ body {
 
 /* Focus rings */
 *:focus-visible {
-  outline: 2px solid #0ea5e9;
+  outline: 2px solid #1D8061;
   outline-offset: 2px;
 }
 
 /* Transitions */
 .transition-base {
-  transition: all 150ms ease-in-out;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Micro-interactions */
+.hover-lift {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
 }
 
 /* Scrollbar */
@@ -44,13 +52,33 @@ body {
   scrollbar-color: #cbd5e1 transparent;
 }
 .scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
-  border-radius: 2px;
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+@layer base {
+  body { @apply bg-ivory text-charcoal; }
+  input, select, textarea { scroll-margin-top: 6rem; }
+  ::selection { background: #D5E8DD; color: #104735; }
+}
+@layer utilities {
+  .text-slate-400 { color: #64748b; }
+  .text-zinc-500 { color: #a1a1aa; }
+}
+@media (max-width: 639px) {
+  button, select { min-height: 44px; }
+  input, select, textarea { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }

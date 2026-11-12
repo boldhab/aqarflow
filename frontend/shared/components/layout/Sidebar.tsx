@@ -1,213 +1,625 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Search,
+  X,
+  ExternalLink,
+  LogOut,
+  Building2,
+  LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '@/shared/hooks';
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  adminOnly?: boolean;
-}
-
-const NavIcon: React.FC<{ path: string }> = ({ path }) => (
-  <svg
-    className="h-4 w-4 flex-shrink-0"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={1.75}
-    aria-hidden="true"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d={path} />
-  </svg>
-);
-
-const NAV_ITEMS: NavItem[] = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: (
-      <NavIcon path="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-    ),
-  },
-  {
-    label: 'Properties',
-    href: '/properties',
-    icon: (
-      <NavIcon path="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-    ),
-  },
-  {
-    label: 'Leads',
-    href: '/leads',
-    icon: (
-      <NavIcon path="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-    ),
-  },
-  {
-    label: 'Visits',
-    href: '/visits',
-    icon: (
-      <NavIcon path="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-    ),
-  },
-  {
-    label: 'Deals',
-    href: '/deals',
-    icon: (
-      <NavIcon path="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75" />
-    ),
-  },
-  {
-    label: 'Team',
-    href: '/team',
-    adminOnly: true,
-    icon: (
-      <NavIcon path="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-    ),
-  },
-  {
-    label: 'Agency Settings',
-    href: '/settings',
-    adminOnly: true,
-    icon: (
-      <NavIcon path="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    ),
-  },
-];
+import { Modal, Button, Badge } from '@/shared/components/ui';
+import { cn } from '../../lib/utils';
+import {
+  WORKSPACE_NAVIGATION,
+  NavSection,
+  NavItem,
+  SubNavItem,
+} from './nav-config';
 
 export interface SidebarProps {
   onCloseMobile?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  onCloseMobile,
+  isCollapsed = false,
+  onToggleCollapse,
+}) => {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
   const { user, agency, role, logout, isLoading } = useAuth();
 
-  const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (item.adminOnly && role !== 'ADMIN') return false;
-    return true;
-  });
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Expanded parent groups (item.id -> boolean)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  // Sign out modal state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // Helper to determine if an item is active
+  const isItemActive = (href: string): boolean => {
+    if (href === '/') return false;
+    if (href.includes('?')) {
+      const [path, query] = href.split('?');
+      if (pathname !== path) return false;
+      if (true) {
+        const currentParams = new URLSearchParams(queryString);
+        const targetParams = new URLSearchParams(query);
+        for (const [k, v] of targetParams.entries()) {
+          if (currentParams.get(k) !== v) return false;
+        }
+        return true;
+      }
+      return false;
+    }
+    return (pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))) && !searchParams.has('purpose') && !searchParams.has('view');
+  };
+
+  // Helper to check if any child of a parent item is active
+  const isChildActive = (item: NavItem): boolean => {
+    if (!item.items || item.items.length === 0) return false;
+    return item.items.some((sub) => isItemActive(sub.href));
+  };
+
+  // Auto-expand parent group if a child route is active on page load or navigation
+  useEffect(() => {
+    WORKSPACE_NAVIGATION.forEach((section) => {
+      section.items.forEach((item) => {
+        if (isChildActive(item)) {
+          setExpandedGroups((prev) => ({ ...prev, [item.id]: true }));
+        }
+      });
+    });
+  }, [pathname, queryString]);
+
+  // Global Keyboard Shortcuts: Ctrl+B / Cmd+B to toggle sidebar, Ctrl+K to search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle sidebar shortcut (Ctrl+B or Cmd+B)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        onToggleCollapse?.();
+      }
+
+      // Focus search shortcut (Ctrl+K or Cmd+K)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (isCollapsed && onToggleCollapse) {
+          onToggleCollapse();
+        }
+        setTimeout(() => searchInputRef.current?.focus(), 100);
+      }
+
+      // Clear search on Escape
+      if (e.key === 'Escape' && searchQuery) {
+        setSearchQuery('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onToggleCollapse, isCollapsed, searchQuery]);
+
+  // Handle logout
   const handleLogout = async () => {
     try {
+      setLoggingOut(true);
       await logout();
       router.push('/login');
     } catch {
       window.location.href = '/login';
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutModal(false);
     }
   };
 
+  // Toggle group expansion
+  const toggleGroup = (itemId: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  };
+
+  // Live navigation search filtering
+  const filteredSections = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return WORKSPACE_NAVIGATION;
+
+    return WORKSPACE_NAVIGATION.map((section) => {
+      const filteredItems: NavItem[] = [];
+      section.items.forEach((item) => {
+        const itemMatches = item.label.toLowerCase().includes(query);
+        const matchingChildren = item.items?.filter((sub) =>
+          sub.label.toLowerCase().includes(query)
+        );
+
+        if (itemMatches) {
+          filteredItems.push(item);
+        } else if (matchingChildren && matchingChildren.length > 0) {
+          filteredItems.push({
+            ...item,
+            items: matchingChildren,
+          });
+        }
+      });
+
+      return {
+        ...section,
+        items: filteredItems,
+      };
+    }).filter((section) => section.items.length > 0);
+  }, [searchQuery]);
+
+  // When searching, auto-expand any groups that match
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const toExpand: Record<string, boolean> = {};
+      filteredSections.forEach((section) => {
+        section.items.forEach((item) => {
+          if (item.items && item.items.length > 0) {
+            toExpand[item.id] = true;
+          }
+        });
+      });
+      setExpandedGroups((prev) => ({ ...prev, ...toExpand }));
+    }
+  }, [searchQuery, filteredSections]);
+
+  // Highlight search query safely in label without dangerouslySetInnerHTML
+  const renderHighlightedText = (text: string) => {
+    const query = searchQuery.trim();
+    if (!query) return text;
+
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+
+    return (
+      <>
+        {parts.map((part, index) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <mark
+              key={index}
+              className="bg-brand-500/30 text-brand-200 font-semibold rounded px-0.5"
+            >
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
+
+  // Check role-based permission
+  const hasPermission = (allowedRoles?: ('ADMIN' | 'AGENT')[]) => {
+    if (!allowedRoles || allowedRoles.length === 0) return true;
+    const currentRole = role || user?.role;
+    if (!currentRole) return true;
+    return allowedRoles.includes(currentRole as 'ADMIN' | 'AGENT');
+  };
+
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-slate-800 bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between select-none">
-      <div>
-        {/* Workspace Brand / Agency */}
-        <div className="px-4 py-5 border-b border-slate-800/80">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white text-sm font-black flex-shrink-0 shadow-md">
+    <>
+      <aside
+        className={cn(
+          'relative h-screen sticky top-0 border-r border-brand-700/90 bg-brand-900 text-brand-50 flex flex-col justify-between select-none transition-all duration-300 ease-in-out z-30',
+          isCollapsed ? 'w-14' : 'w-64'
+        )}
+        aria-label="Admin Workspace Sidebar"
+      >
+        {/* =========================================================================
+            CRITICAL REQUIREMENT: Floating Collapse/Expand Toggle
+            - Attached to the outer right edge of the sidebar
+            - Vertically centered at 50% of the sidebar height
+            - Moves smoothly as the sidebar width changes
+            - Remains centered at 50% of viewport height as page scrolls
+            ========================================================================= */}
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className={cn(
+              'hidden lg:flex items-center justify-center absolute -right-3 top-1/2 -translate-y-1/2 z-40',
+              'w-6 h-6 rounded-full bg-brand-800 border border-brand-600/90 text-brand-200',
+              'hover:text-white hover:bg-brand-700 hover:border-brand-500/80 hover:shadow-md',
+              'shadow-sm transition-all duration-200 active:scale-95 cursor-pointer',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-900'
+            )}
+            aria-label={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            title={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronLeft className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
+
+        {/* Top Header & Navigation Area */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Header Brand */}
+          <div
+            className={cn(
+              'h-16 flex items-center border-b border-brand-700/80 flex-shrink-0 transition-all px-3.5',
+              isCollapsed ? 'justify-center' : 'justify-between'
+            )}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white text-sm font-black flex-shrink-0 shadow-sm shadow-brand-900/30">
                 A
               </span>
-              <div className="min-w-0">
-                <div
-                  className="text-sm font-bold text-white truncate"
-                  data-testid="agency-name"
-                >
-                  {agency?.name || 'AqarFlow'}
+              {!isCollapsed && (
+                <div className="min-w-0">
+                  <div
+                    className="text-sm font-bold text-white truncate tracking-tight"
+                    data-testid="agency-name"
+                  >
+                    {agency?.name || 'AqarFlow'}
+                  </div>
+                  <div className="text-[11px] text-brand-200 font-medium tracking-wide">
+                    Enterprise CRM
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400 font-medium">Operations CRM</div>
+              )}
+            </div>
+          </div>
+
+          {/* Live Search Input (Expanded) or Search Trigger (Collapsed) */}
+          <div className="px-3 pt-3.5 pb-1 flex-shrink-0">
+            {!isCollapsed ? (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-200 pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Quick search... (Ctrl+K)"
+                  className="w-full bg-brand-800/90 border border-brand-700 rounded-lg pl-8 pr-7 py-1.5 text-xs text-brand-100 placeholder:text-brand-300 transition-colors focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  aria-label="Search navigation"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-200 hover:text-white p-0.5 rounded"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </div>
-            </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 font-semibold border border-brand-500/30 flex-shrink-0">
-              Workspace
-            </span>
-          </div>
-        </div>
-
-        {/* Navigation Links */}
-        <nav className="mt-4 px-3 space-y-1" aria-label="Workspace navigation">
-          {visibleNavItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== '/' && pathname.startsWith(`${item.href}/`));
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onCloseMobile}
-                className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 ${
-                  isActive
-                    ? 'bg-brand-600 text-white shadow-sm font-semibold'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-                aria-current={isActive ? 'page' : undefined}
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleCollapse?.();
+                  setTimeout(() => searchInputRef.current?.focus(), 150);
+                }}
+                className="w-8 h-8 mx-auto flex items-center justify-center rounded-lg text-brand-200 hover:text-white hover:bg-brand-800 transition-colors"
+                title="Search navigation (Ctrl+K)"
+                aria-label="Open search"
               >
-                <span
-                  className={
-                    isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'
-                  }
-                >
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Account Info and Logout */}
-      <div className="p-4 border-t border-slate-800/80 space-y-3 bg-slate-900/90">
-        <div className="px-2 py-1 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                <Search className="h-4 w-4" />
+              </button>
+            )}
           </div>
-          <div className="min-w-0 flex-1 text-xs">
-            <div
-              className="font-semibold text-slate-200 text-sm truncate"
-              data-testid="user-name"
-            >
-              {user?.name || (isLoading ? 'Loading...' : 'Guest')}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-              <span data-testid="user-role" className="uppercase font-semibold tracking-wide">
-                {role || 'GUEST'}
-              </span>
-            </div>
+
+          {/* Scrollable Navigation Area */}
+          <div className="flex-1 overflow-y-auto px-2 py-2 space-y-4 scrollbar-thin">
+            {filteredSections.length === 0 ? (
+              <div className="py-8 px-2 text-center space-y-2">
+                <p className="text-xs text-brand-200">
+                  No menus matching &ldquo;{searchQuery}&rdquo;
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs text-brand-400 hover:text-brand-300 font-semibold"
+                >
+                  Clear filter
+                </button>
+              </div>
+            ) : (
+              filteredSections.map((section) => {
+                if (!hasPermission(section.roles)) return null;
+
+                return (
+                  <div key={section.id} className="space-y-1">
+                    {/* Section Heading (Expanded only) */}
+                    {!isCollapsed && (
+                      <div className="px-2.5 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-brand-300 select-none">
+                        {section.title}
+                      </div>
+                    )}
+
+                    {/* Section Items */}
+                    <div className="space-y-0.5">
+                      {section.items.map((item) => {
+                        if (!hasPermission(item.roles)) return null;
+
+                        const IconComponent: LucideIcon = item.icon || Building2;
+                        const hasChildren = item.items && item.items.length > 0;
+                        const active = isItemActive(item.href);
+                        const childActive = isChildActive(item);
+                        const isExpanded = !!expandedGroups[item.id];
+
+                        // Top-level Navigation Link/Button
+                        return (
+                          <div key={item.id} className="relative group">
+                            {hasChildren && !isCollapsed ? (
+                              // Expandable Parent Menu (has children)
+                              <button
+                                type="button"
+                                onClick={() => toggleGroup(item.id)}
+                                className={cn(
+                                  'w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-150',
+                                  active || childActive
+                                    ? 'text-white bg-brand-800/90 font-semibold border-l-2 border-brand-500'
+                                    : 'text-brand-200 hover:text-brand-50 hover:bg-brand-800/60'
+                                )}
+                                aria-expanded={isExpanded}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <IconComponent
+                                    className={cn(
+                                      'h-4 w-4 flex-shrink-0 transition-colors',
+                                      active || childActive
+                                        ? 'text-brand-400'
+                                        : 'text-brand-200 group-hover:text-brand-100'
+                                    )}
+                                  />
+                                  <span className="truncate">
+                                    {renderHighlightedText(item.label)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                  {item.badge && (
+                                    <span
+                                      className={cn(
+                                        'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
+                                        item.badgeVariant === 'emerald'
+                                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                          : 'bg-brand-700 text-brand-200'
+                                      )}
+                                    >
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                  <ChevronDown
+                                    className={cn(
+                                      'h-3.5 w-3.5 text-brand-200 transition-transform duration-200',
+                                      isExpanded && 'rotate-180'
+                                    )}
+                                  />
+                                </div>
+                              </button>
+                            ) : (
+                              // Direct Link (no children or collapsed mode)
+                              <Link
+                                href={item.href}
+                                onClick={onCloseMobile}
+                                target={item.external ? '_blank' : undefined}
+                                rel={item.external ? 'noopener noreferrer' : undefined}
+                                className={cn(
+                                  'flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all duration-150 relative',
+                                  isCollapsed ? 'justify-center w-9 h-9 mx-auto' : 'text-xs font-medium',
+                                  // CRITICAL: Orange accent for active items
+                                  active
+                                    ? 'bg-brand-600 text-white font-semibold shadow-sm shadow-brand-950/30'
+                                    : childActive
+                                    ? 'text-white bg-brand-800 font-medium'
+                                    : 'text-brand-200 hover:text-brand-50 hover:bg-brand-800/70'
+                                )}
+                                aria-current={active ? 'page' : undefined}
+                              >
+                                <IconComponent
+                                  className={cn(
+                                    'h-4 w-4 flex-shrink-0 transition-colors',
+                                    active
+                                      ? 'text-white'
+                                      : childActive
+                                      ? 'text-brand-400'
+                                      : 'text-brand-200 group-hover:text-brand-100'
+                                  )}
+                                />
+                                {!isCollapsed && (
+                                  <>
+                                    <span className="truncate flex-1">
+                                      {renderHighlightedText(item.label)}
+                                    </span>
+                                    {item.external && (
+                                      <ExternalLink className="h-3 w-3 text-brand-200 flex-shrink-0" />
+                                    )}
+                                    {item.badge && !item.external && (
+                                      <span
+                                        className={cn(
+                                          'px-1.5 py-0.5 text-[10px] font-bold rounded-md flex-shrink-0',
+                                          item.badgeVariant === 'emerald'
+                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                            : 'bg-brand-700 text-brand-200'
+                                        )}
+                                      >
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </Link>
+                            )}
+
+                            {/* Collapsed Mode Floating Tooltip */}
+                            {isCollapsed && (
+                              <div
+                                role="tooltip"
+                                className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-brand-800 text-brand-50 text-xs font-semibold rounded-lg shadow-xl border border-brand-700 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 flex items-center gap-1.5"
+                              >
+                                <span>{item.label}</span>
+                                {item.badge && (
+                                  <span className="text-[10px] text-emerald-400 font-bold">
+                                    ({item.badge})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Nested Sub-items (Expanded Mode) */}
+                            {hasChildren && !isCollapsed && isExpanded && (
+                              <div className="ml-5 pl-3 mt-1 space-y-0.5 border-l border-brand-700/80">
+                                {item.items!.map((sub: SubNavItem) => {
+                                  if (!hasPermission(sub.roles)) return null;
+                                  const subActive = isItemActive(sub.href);
+
+                                  return (
+                                    <Link
+                                      key={sub.id}
+                                      href={sub.href}
+                                      onClick={onCloseMobile}
+                                      className={cn(
+                                        'block px-2.5 py-1.5 rounded-lg text-xs transition-colors',
+                                        // Orange accent for active nested items
+                                        subActive
+                                          ? 'text-brand-400 font-semibold bg-brand-500/10 border-l-2 border-brand-500 -ml-[13px] pl-3'
+                                          : 'text-brand-200 hover:text-brand-100 hover:bg-brand-800/50'
+                                      )}
+                                      aria-current={subActive ? 'page' : undefined}
+                                    >
+                                      {renderHighlightedText(sub.label)}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          data-testid="logout-button"
-          className="w-full text-left px-3 py-2 text-xs font-semibold rounded-lg text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors flex items-center justify-between"
-        >
-          <span className="flex items-center gap-2">
-            <svg
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+        {/* User Profile Footer (Fixed at bottom) */}
+        <div className="p-2.5 border-t border-brand-700/80 bg-brand-900/95 space-y-2 flex-shrink-0">
+          {/* Quick Public Portal Link */}
+          {!isCollapsed && (
+            <Link
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-brand-200 hover:text-brand-50 hover:bg-brand-800/60 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
-              />
-            </svg>
-            Sign Out
-          </span>
-          <span className="text-slate-500">→</span>
-        </button>
-      </div>
-    </aside>
+              <span className="flex items-center gap-2">
+                <ExternalLink className="h-3.5 w-3.5 text-brand-200" />
+                <span>Public Marketplace</span>
+              </span>
+              <span className="text-[10px] text-brand-200 font-mono">↗</span>
+            </Link>
+          )}
+
+          {/* User Account Info Pill */}
+          <div
+            className={cn(
+              'px-2 py-1.5 flex items-center gap-2.5 rounded-xl bg-brand-800/70 border border-brand-700/60',
+              isCollapsed && 'justify-center px-1'
+            )}
+          >
+            <div className="w-7 h-7 rounded-lg bg-brand-600/20 border border-brand-500/30 text-brand-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0 flex-1">
+                <div
+                  className="font-semibold text-brand-100 text-xs truncate"
+                  data-testid="user-name"
+                >
+                  {user?.name || (isLoading ? 'Loading...' : 'Agent')}
+                </div>
+                <div className="text-[10px] text-brand-200 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span data-testid="user-role" className="uppercase font-semibold tracking-wide">
+                    {role || 'AGENT'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sign Out Button (Opens Confirmation Modal) */}
+          <button
+            type="button"
+            onClick={() => setShowLogoutModal(true)}
+            data-testid="logout-button"
+            title={isCollapsed ? 'Sign Out' : undefined}
+            className={cn(
+              'w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors flex items-center',
+              isCollapsed ? 'justify-center' : 'justify-between'
+            )}
+            aria-label="Sign out of workspace"
+          >
+            <span className="flex items-center gap-2">
+              <LogOut className="h-3.5 w-3.5 flex-shrink-0" />
+              {!isCollapsed && <span>Sign Out</span>}
+            </span>
+            {!isCollapsed && <span className="text-brand-300 text-xs">&rarr;</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* Sign Out Confirmation Modal */}
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => !loggingOut && setShowLogoutModal(false)}
+        title="Sign Out Confirmation"
+        description="Are you sure you want to end your current workspace session?"
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2.5 w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loggingOut}
+              onClick={() => setShowLogoutModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              isLoading={loggingOut}
+              onClick={handleLogout}
+            >
+              Confirm Sign Out
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          You will need your agency credentials to sign back into this workspace.
+        </p>
+      </Modal>
+    </>
   );
 };
