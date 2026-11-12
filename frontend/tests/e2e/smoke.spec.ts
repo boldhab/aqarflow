@@ -1,14 +1,20 @@
-import { test, expect } from '@playwright/test';
-
-test.describe('AqarFlow Smoke Tests', () => {
-  test('home page loads and displays hero header', async ({ page }) => {
-    await page.goto('/');
-    await expect(page).toHaveTitle(/AqarFlow/);
-    await expect(page.locator('text=Find Your Dream Property in Pakistan')).toBeVisible();
+import { test, expect } from "@playwright/test";
+for (const width of [1440, 375]) {
+  test(`public pages render without overflow at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    for (const route of ["/", "/properties", "/about", "/contact", "/login"]) {
+      await page.goto(route);
+      await expect(page.locator("h1")).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+    expect(errors).toEqual([]);
   });
-
-  test('login page renders form', async ({ page }) => {
-    await page.goto('/login');
-    await expect(page.locator('text=Sign in to AqarFlow')).toBeVisible();
-  });
-});
+}

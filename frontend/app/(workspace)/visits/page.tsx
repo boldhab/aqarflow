@@ -1,6 +1,3 @@
-import React from 'react';
-import { VisitList } from '@/modules/visits';
-
-export default function WorkspaceVisitsPage() {
-  return <VisitList />;
-}
+import { Suspense } from 'react';
+import { WorkflowPage } from '@/modules/workspace/components/WorkflowPage';
+export default function Page() { return <Suspense fallback={<p role="status">Loading…</p>}><WorkflowPage kind="visits"/></Suspense>; }

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { ReactNode, useEffect, useCallback } from 'react';
+import React, { ReactNode, useEffect, useCallback, useRef, useId } from 'react';
+import { useDialogFocus } from '@/shared/hooks/useDialogFocus';
 import { cn } from '../../lib/utils';
 
 export interface ModalProps {
@@ -24,9 +25,13 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   hideClose = false,
 }) => {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useDialogFocus(panelRef, isOpen);
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      const dialogs = document.querySelectorAll('[aria-modal="true"]');
+      if (e.key === 'Escape' && dialogs[dialogs.length - 1] === panelRef.current) { e.stopImmediatePropagation(); onClose(); }
     },
     [onClose]
   );
@@ -34,11 +39,11 @@ export const Modal: React.FC<ModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
+
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+
     };
   }, [isOpen, handleKeyDown]);
 
@@ -54,10 +59,12 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+      ref={panelRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
+      aria-labelledby={title ? titleId : undefined}
     >
       {/* Backdrop */}
       <div
@@ -69,16 +76,16 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Modal Panel */}
       <div
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-modal flex flex-col max-h-[90vh] animate-slide-up',
+          'relative w-full bg-white rounded-2xl shadow-modal flex flex-col max-h-[92dvh] animate-scale-in',
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || !hideClose) && (
-          <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
-            <div className="pr-4">
+          <div className="flex items-start justify-between px-5 sm:px-6 py-4 border-b border-slate-100 flex-shrink-0">
+            <div className="pr-4 min-w-0">
               {title && (
-                <h2 id="modal-title" className="text-base font-semibold text-slate-900">
+                <h2 id={titleId} className="text-base font-semibold text-slate-900 truncate">
                   {title}
                 </h2>
               )}
@@ -88,8 +95,9 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
             {!hideClose && (
               <button
+                type="button"
                 onClick={onClose}
-                className="flex-shrink-0 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                className="flex-shrink-0 p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                 aria-label="Close modal"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>

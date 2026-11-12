@@ -1,404 +1,404 @@
-'use client';
+"use client";
+import React, { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { SlidersHorizontal, Grid2X2, List, Search } from "lucide-react";
+import { publicPortalApi } from "../api";
+import {
+  PublicListingItem,
+  PublicPropertyFilters,
+  PublicFiltersData,
+} from "../types";
+import {
+  Button,
+  Input,
+  Select,
+  Pagination,
+  EmptyState,
+  SkeletonCard,
+  Alert,
+} from "@/shared/components/ui";
+import { ListingCard } from "./ListingCard";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { publicPortalApi } from '../api';
-import { PublicListingItem, PublicPropertyFilters, PublicFiltersData } from '../types';
-import { formatPKR } from '@/shared/lib';
-import { Button, Input } from '@/shared/components/ui';
-
-const API_SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
-
-function resolveImageUrl(url?: string | null): string {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  return `${API_SERVER_URL}${url}`;
+function readFilters(query: string): PublicPropertyFilters {
+  const params = new URLSearchParams(query);
+  return {
+    purpose: params.get("purpose") || "",
+    type: params.get("type") || "",
+    city: params.get("city") || "",
+    minPrice: params.get("minPrice") || "",
+    maxPrice: params.get("maxPrice") || "",
+    bedrooms: params.get("bedrooms") || "",
+    search: params.get("search") || "",
+    sort: params.get("sort") || "newest",
+    page: Math.max(1, Number(params.get("page")) || 1),
+    limit: 12,
+  };
 }
-
 export const PublicListings: React.FC = () => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [filterOptions, setFilterOptions] = useState<PublicFiltersData>({
+  const router = useRouter(),
+    searchParams = useSearchParams();
+  const query = searchParams.toString();
+  const [filters, setFilters] = useState(() => readFilters(query));
+  const [draft, setDraft] = useState(filters);
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [expanded, setExpanded] = useState(false);
+  const [options, setOptions] = useState<PublicFiltersData>({
     cities: [],
     types: [],
   });
-
-  const [filters, setFilters] = useState<PublicPropertyFilters>({
-    purpose: searchParams.get('purpose') || '',
-    type: searchParams.get('type') || '',
-    city: searchParams.get('city') || '',
-    minPrice: searchParams.get('minPrice') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
-    bedrooms: searchParams.get('bedrooms') || '',
-    search: searchParams.get('search') || '',
-    sort: searchParams.get('sort') || 'newest',
-    page: parseInt(searchParams.get('page') || '1', 10),
-    limit: 12,
-  });
-
+  const [optionsError, setOptionsError] = useState(false);
   const [listings, setListings] = useState<PublicListingItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Load distinct filter values
+  const [total, setTotal] = useState(0),
+    [pages, setPages] = useState(1);
+  const [loading, setLoading] = useState(true),
+    [error, setError] = useState<string | null>(null),
+    [retry, setRetry] = useState(0);
+  const [validation, setValidation] = useState("");
   useEffect(() => {
+    const next = readFilters(query);
+    setFilters(next);
+    setDraft(next);
+  }, [query]);
+  useEffect(() => {
+    let active = true;
     publicPortalApi
       .getFilters()
       .then((res) => {
-        if (res?.data) {
-          setFilterOptions(res.data);
+        if (active) {
+          setOptions(res.data);
+          setOptionsError(false);
         }
       })
-      .catch(() => {});
-  }, []);
-
-  // Fetch properties whenever filters change
-  const fetchProperties = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await publicPortalApi.getProperties(filters);
-      if (res?.data) {
-        setListings(res.data.items || []);
-        setTotal(res.data.total || 0);
-        setTotalPages(res.data.totalPages || 1);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch properties');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    fetchProperties();
-  }, [fetchProperties]);
-
-  // Sync state to URL
-  const updateFilter = (newValues: Partial<PublicPropertyFilters>) => {
-    const updated = { ...filters, ...newValues, page: newValues.page !== undefined ? newValues.page : 1 };
-    setFilters(updated);
-
-    const params = new URLSearchParams();
-    if (updated.purpose) params.set('purpose', updated.purpose);
-    if (updated.type) params.set('type', updated.type);
-    if (updated.city) params.set('city', updated.city);
-    if (updated.minPrice) params.set('minPrice', String(updated.minPrice));
-    if (updated.maxPrice) params.set('maxPrice', String(updated.maxPrice));
-    if (updated.bedrooms) params.set('bedrooms', String(updated.bedrooms));
-    if (updated.search) params.set('search', updated.search);
-    if (updated.sort && updated.sort !== 'newest') params.set('sort', updated.sort);
-    if (updated.page && updated.page > 1) params.set('page', String(updated.page));
-
-    const queryStr = params.toString();
-    router.replace(`/properties${queryStr ? `?${queryStr}` : ''}`, { scroll: false });
-  };
-
-  const handleReset = () => {
-    const resetFilters: PublicPropertyFilters = {
-      purpose: '',
-      type: '',
-      city: '',
-      minPrice: '',
-      maxPrice: '',
-      bedrooms: '',
-      search: '',
-      sort: 'newest',
-      page: 1,
-      limit: 12,
+      .catch(() => {
+        if (active) setOptionsError(true);
+      });
+    return () => {
+      active = false;
     };
-    setFilters(resetFilters);
-    router.replace('/properties', { scroll: false });
-  };
-
+  }, [retry]);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    publicPortalApi
+      .getProperties(filters, controller.signal)
+      .then((res) => {
+        if (!controller.signal.aborted) {
+          setListings(res.data.items);
+          setTotal(res.data.total);
+          setPages(res.data.totalPages);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError("We couldn’t load properties. Please try again.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [filters, retry]);
+  function apply(next: PublicPropertyFilters) {
+    if (
+      next.minPrice &&
+      next.maxPrice &&
+      Number(next.minPrice) > Number(next.maxPrice)
+    ) {
+      setValidation("Maximum price must be at least the minimum price.");
+      return;
+    }
+    setValidation("");
+    const params = new URLSearchParams();
+    Object.entries(next).forEach(([key, value]) => {
+      if (key !== "limit" && value && !(key === "page" && value === 1))
+        params.set(key, String(value));
+    });
+    setFilters(next);
+    setDraft(next);
+    setExpanded(false);
+    router.replace(`/properties${params.size ? `?${params}` : ""}`, {
+      scroll: false,
+    });
+  }
+  const reset = () => apply(readFilters(""));
+  const activeCount = [
+    "city",
+    "type",
+    "minPrice",
+    "maxPrice",
+    "bedrooms",
+  ].filter((k) => filters[k as keyof PublicPropertyFilters]).length;
   return (
-    <div className="space-y-8">
-      {/* Search and Filters Section */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Explore Properties</h2>
-            <p className="text-sm text-slate-500">Discover verified properties for sale and rent in Pakistan</p>
-          </div>
-
-          {/* Quick Purpose Filter Pills */}
-          <div className="inline-flex rounded-lg bg-slate-100 p-1 text-xs font-semibold">
-            {[
-              { label: 'All', value: '' },
-              { label: 'Buy', value: 'SALE' },
-              { label: 'Rent', value: 'RENT' },
-              { label: 'Lease', value: 'LEASE' },
-            ].map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                onClick={() => updateFilter({ purpose: p.value })}
-                className={`px-3.5 py-1.5 rounded-md transition ${
-                  filters.purpose === p.value
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-brand-700 mb-2">
+            Find your next address
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            Explore Properties
+          </h1>
+          <p className="text-slate-600 text-sm mt-2">
+            Homes, commercial spaces, and land across Pakistan.
+          </p>
         </div>
-
-        {/* Filter Inputs Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 pt-1">
-          {/* Search text */}
-          <div className="lg:col-span-2">
-            <Input
-              placeholder="Search by title, locality or sector..."
-              value={filters.search || ''}
-              onChange={(e) => updateFilter({ search: e.target.value })}
-            />
-          </div>
-
-          {/* City select */}
-          <div>
-            <select
-              aria-label="Filter by city"
-              value={filters.city || ''}
-              onChange={(e) => updateFilter({ city: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          apply({ ...draft, page: 1 });
+        }}
+        className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-card space-y-4"
+      >
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label="Listing purpose"
+        >
+          {[
+            ["All", ""],
+            ["Buy", "SALE"],
+            ["Rent", "RENT"],
+            ["Lease", "LEASE"],
+          ].map(([label, value]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={filters.purpose === value}
+              onClick={() => apply({ ...draft, purpose: value, page: 1 })}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold ${filters.purpose === value ? "bg-brand-600 text-white" : "bg-slate-50 text-slate-700 hover:bg-brand-50"}`}
             >
-              <option value="">All Cities</option>
-              {filterOptions.cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Property Type select */}
-          <div>
-            <select
-              aria-label="Filter by property type"
-              value={filters.type || ''}
-              onChange={(e) => updateFilter({ type: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Types</option>
-              {filterOptions.types.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace(/_/g, ' ')}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Sort order */}
-          <div>
-            <select
-              aria-label="Sort properties"
-              value={filters.sort || 'newest'}
-              onChange={(e) => updateFilter({ sort: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-            >
-              <option value="newest">Newest First</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-            </select>
-          </div>
+              {label}
+            </button>
+          ))}
         </div>
-
-        {/* Second Row: Price range & Beds */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 pt-1">
-          <div>
-            <Input
-              type="number"
-              min="0"
-              placeholder="Min Price (PKR)"
-              value={filters.minPrice || ''}
-              onChange={(e) => updateFilter({ minPrice: e.target.value })}
-            />
-          </div>
-          <div>
-            <Input
-              type="number"
-              min="0"
-              placeholder="Max Price (PKR)"
-              value={filters.maxPrice || ''}
-              onChange={(e) => updateFilter({ maxPrice: e.target.value })}
-            />
-          </div>
-          <div>
-            <select
-              aria-label="Filter by bedrooms"
-              value={filters.bedrooms || ''}
-              onChange={(e) => updateFilter({ bedrooms: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Any Bedrooms</option>
-              <option value="1">1+ Bedrooms</option>
-              <option value="2">2+ Bedrooms</option>
-              <option value="3">3+ Bedrooms</option>
-              <option value="4">4+ Bedrooms</option>
-              <option value="5">5+ Bedrooms</option>
-            </select>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="secondary" onClick={handleReset} className="w-full text-xs">
-              Reset Filters
+        <div className="flex flex-wrap sm:flex-nowrap gap-3 items-end">
+          <Input
+            label="Search properties"
+            placeholder="Title, locality, or sector"
+            value={draft.search || ""}
+            onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+            leftAddon={<Search size={17} aria-hidden="true" />}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            aria-expanded={expanded}
+            aria-controls="advanced-property-filters"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <SlidersHorizontal size={16} aria-hidden="true" />
+            Filters{activeCount ? ` (${activeCount})` : ""}
+          </Button>
+          <Button type="submit">Search</Button>
+        </div>
+        <div
+          id="advanced-property-filters"
+          className={`${expanded ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-slate-100`}
+        >
+          <Select
+            label="City"
+            aria-label="Filter by city"
+            value={draft.city || ""}
+            onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+            options={[
+              { value: "", label: "All Cities" },
+              ...Array.from(
+                new Set([
+                  ...options.cities,
+                  ...(draft.city ? [draft.city] : []),
+                ]),
+              ).map((value) => ({ value, label: value })),
+            ]}
+          />
+          <Select
+            label="Property type"
+            aria-label="Filter by property type"
+            value={draft.type || ""}
+            onChange={(e) => setDraft({ ...draft, type: e.target.value })}
+            options={[
+              { value: "", label: "All Types" },
+              ...Array.from(
+                new Set([
+                  ...options.types,
+                  ...(draft.type ? [draft.type] : []),
+                ]),
+              ).map((value) => ({
+                value,
+                label: value.toLowerCase().replace(/_/g, " "),
+              })),
+            ]}
+          />
+          <Input
+            label="Minimum price (PKR)"
+            type="number"
+            min="0"
+            value={draft.minPrice || ""}
+            onChange={(e) => setDraft({ ...draft, minPrice: e.target.value })}
+          />
+          <Input
+            label="Maximum price (PKR)"
+            type="number"
+            min="0"
+            value={draft.maxPrice || ""}
+            onChange={(e) => setDraft({ ...draft, maxPrice: e.target.value })}
+          />
+          <Select
+            label="Bedrooms"
+            aria-label="Filter by bedrooms"
+            value={draft.bedrooms || ""}
+            onChange={(e) => setDraft({ ...draft, bedrooms: e.target.value })}
+            options={[
+              { value: "", label: "Any bedrooms" },
+              ...[1, 2, 3, 4, 5].map((n) => ({
+                value: String(n),
+                label: `${n}+ bedrooms`,
+              })),
+            ]}
+          />
+          <div className="sm:col-span-2 lg:col-span-5 flex gap-3">
+            <Button type="submit" size="sm">
+              Apply Filters
+            </Button>
+            <Button variant="ghost" size="sm" type="button" onClick={reset}>
+              Clear Filters
             </Button>
           </div>
         </div>
-      </div>
-
-      {/* Results Header */}
-      <div className="flex items-center justify-between text-sm text-slate-600 px-1">
-        <div>
-          Showing <span className="font-semibold text-slate-900">{listings.length}</span> of{' '}
-          <span className="font-semibold text-slate-900">{total}</span> properties
+        {validation && (
+          <p role="alert" className="text-sm text-rose-700">
+            {validation}
+          </p>
+        )}
+        {optionsError && (
+          <p className="text-sm text-slate-600">
+            Location options are temporarily unavailable. You can still search
+            by title or locality.{" "}
+            <button
+              type="button"
+              className="underline text-brand-700"
+              onClick={() => setRetry((n) => n + 1)}
+            >
+              Retry
+            </button>
+          </p>
+        )}
+        {activeCount > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {(["city", "type", "bedrooms", "minPrice", "maxPrice"] as const)
+              .filter((k) => filters[k])
+              .map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="rounded-full bg-brand-50 px-3 py-1.5 text-xs text-brand-700"
+                  aria-label={`Remove ${k} filter`}
+                  onClick={() => apply({ ...filters, [k]: "", page: 1 })}
+                >
+                  {k.replace(/([A-Z])/g, " $1")}: {filters[k]} ×
+                </button>
+              ))}
+          </div>
+        )}
+      </form>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p role="status" aria-live="polite" className="text-sm text-slate-600">
+          {loading
+            ? "Loading properties…"
+            : error
+              ? "Properties unavailable"
+              : `${total} ${total === 1 ? "property" : "properties"} found`}
+        </p>
+        <div className="flex items-center gap-3">
+          <Select
+            aria-label="Sort properties"
+            value={filters.sort || "newest"}
+            onChange={(e) =>
+              apply({ ...filters, sort: e.target.value, page: 1 })
+            }
+            options={[
+              { value: "newest", label: "Newest first" },
+              { value: "price_asc", label: "Price: low to high" },
+              { value: "price_desc", label: "Price: high to low" },
+            ]}
+          />
+          <div className="flex gap-1">
+            <button
+              type="button"
+              aria-label="Grid view"
+              aria-pressed={view === "grid"}
+              onClick={() => setView("grid")}
+              className="p-2 rounded-lg border"
+            >
+              <Grid2X2 size={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="List view"
+              aria-pressed={view === "list"}
+              onClick={() => setView("list")}
+              className="p-2 rounded-lg border"
+            >
+              <List size={18} />
+            </button>
+          </div>
         </div>
       </div>
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Property Cards Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-12">
+      {error ? (
+        <Alert variant="error" title="Properties are temporarily unavailable">
+          <p>{error}</p>
+          <Button
+            className="mt-3"
+            variant="outline"
+            onClick={() => setRetry((n) => n + 1)}
+          >
+            Retry
+          </Button>
+        </Alert>
+      ) : loading ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="animate-pulse bg-white border border-slate-200 rounded-2xl h-80 overflow-hidden">
-              <div className="h-48 bg-slate-200" />
-              <div className="p-5 space-y-3">
-                <div className="h-4 bg-slate-200 rounded w-1/3" />
-                <div className="h-5 bg-slate-200 rounded w-3/4" />
-                <div className="h-4 bg-slate-200 rounded w-1/2" />
-              </div>
-            </div>
+            <SkeletonCard key={i} />
           ))}
         </div>
       ) : listings.length === 0 ? (
-        <div className="text-center py-20 bg-white border border-slate-200 rounded-2xl">
-          <div className="text-4xl mb-3">🏡</div>
-          <h3 className="text-lg font-bold text-slate-800">No properties found</h3>
-          <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-            Try adjusting your search criteria, price range, or city filter to view available properties.
-          </p>
-          <Button variant="secondary" size="sm" onClick={handleReset} className="mt-4">
-            Reset Filters
-          </Button>
-        </div>
+        <EmptyState
+          title="No matching properties"
+          description="Try a different location, property type, or budget."
+          action={
+            <Button variant="outline" onClick={reset}>
+              Clear Filters
+            </Button>
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings.map((item) => {
-            const coverImage = item.primaryImage || item.images[0];
-            const coverUrl = resolveImageUrl(coverImage?.url);
-
-            return (
-              <Link
-                key={item.id}
-                href={`/properties/${item.id}`}
-                data-testid="property-card"
-                className="group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col"
-              >
-                {/* Photo & Badges */}
-                <div className="relative h-52 bg-slate-100 overflow-hidden">
-                  {coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={coverUrl}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100 text-sm">
-                      No photo available
-                    </div>
-                  )}
-
-                  {/* Purpose & Type badge */}
-                  <div className="absolute top-3 left-3 flex items-center space-x-1.5">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-600 text-white shadow-sm">
-                      {item.purpose === 'SALE' ? 'For Sale' : item.purpose === 'RENT' ? 'For Rent' : 'For Lease'}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur text-slate-800 shadow-sm">
-                      {item.type}
-                    </span>
-                  </div>
-
-                  {item.images && item.images.length > 1 && (
-                    <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-full text-xs font-semibold bg-black/60 text-white backdrop-blur">
-                      📷 {item.images.length}
-                    </div>
-                  )}
-                </div>
-
-                {/* Details */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="text-xs font-mono text-slate-400 mb-1">{item.referenceCode}</div>
-                    <h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition truncate">
-                      {item.title}
-                    </h3>
-                    <div className="text-xl font-extrabold text-blue-600 mt-1">
-                      {formatPKR(item.price)}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 flex items-center">
-                      <span>📍</span>
-                      <span className="ml-1 truncate">
-                        {item.locality ? `${item.locality}, ` : ''}
-                        {item.city || 'Pakistan'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Facts Strip */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 font-medium">
-                    {item.bedrooms !== null && item.bedrooms !== undefined && (
-                      <span>🛏️ {item.bedrooms} {item.bedrooms === 1 ? 'Bed' : 'Beds'}</span>
-                    )}
-                    {item.bathrooms !== null && item.bathrooms !== undefined && (
-                      <span>🚿 {item.bathrooms} {item.bathrooms === 1 ? 'Bath' : 'Baths'}</span>
-                    )}
-                    <span>
-                      📐 {Number(item.areaValue).toLocaleString()} {item.areaUnit}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div
+          className={
+            view === "grid"
+              ? "grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              : "space-y-5"
+          }
+        >
+          {listings.map((property) => (
+            <ListingCard
+              key={property.id}
+              property={property}
+              list={view === "list"}
+            />
+          ))}
         </div>
       )}
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center space-x-3 pt-6 border-t border-slate-100">
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={filters.page === 1}
-            onClick={() => updateFilter({ page: (filters.page || 1) - 1 })}
-          >
-            &larr; Previous
-          </Button>
-          <span className="text-sm font-medium text-slate-600">
-            Page {filters.page} of {totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={filters.page === totalPages}
-            onClick={() => updateFilter({ page: (filters.page || 1) + 1 })}
-          >
-            Next &rarr;
-          </Button>
-        </div>
+      {!error && !loading && (
+        <Pagination
+          page={filters.page || 1}
+          totalPages={pages}
+          total={total}
+          limit={12}
+          onPageChange={(page) => {
+            apply({ ...filters, page });
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
       )}
     </div>
   );

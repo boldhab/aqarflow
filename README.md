@@ -126,7 +126,7 @@ aqarflow/
 │   ├── app/                      (Routing only, thin pages importing from modules)
 │   │   ├── (public)/             home, properties, properties/[id], about, contact
 │   │   ├── (auth)/login          login page
-│   │   └── (workspace)/          dashboard, properties, leads, visits, deals
+│   │   └── (workspace)/          dashboard, inventory, leads, visits, deals
 │   ├── modules/                  (Feature-based modules)
 │   │   ├── auth/
 │   │   ├── properties/
@@ -195,3 +195,9 @@ The root and package configurations provide standard scripts:
 - Backend dev only: `npm run dev:backend` (or `cd backend && npm run dev`)
 - Frontend dev only: `npm run dev:frontend` (or `cd frontend && npm run dev`)
 - E2E Playwright tests: `cd frontend && npm run test`
+
+### Frontend navigation and verification
+
+`/properties` is always the public marketplace, including for signed-in users. Property management lives at `/inventory`. Dashboard creation shortcuts use `?create=1`; inventory filters and the CRM pipeline view are preserved in the URL.
+
+See [frontend improvements](docs/frontend-improvements.md) for behavior changes, validation, and content limitations.

@@ -63,7 +63,11 @@ export function Table<T>({
   };
 
   return (
-    <div className={cn('overflow-x-auto rounded-xl border border-slate-200 bg-white', className)}>
+    <>
+    <div className="lg:hidden space-y-3" aria-label={caption || 'Records'}>
+      {isLoading ? <p role="status" className="p-6 text-sm text-slate-600">Loading records…</p> : data.length === 0 ? <div className="p-6 border rounded-xl bg-white text-center"><p className="font-semibold">{emptyMessage}</p><p className="text-sm text-slate-600 mt-2">{emptyDescription}</p></div> : data.map(item => <article key={keyExtractor(item)} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-card"><dl className="space-y-3">{columns.map((col,index)=><div key={index} className="flex flex-col gap-1"><dt className="text-xs uppercase tracking-wide font-semibold text-slate-600">{col.header}</dt><dd className="text-sm text-slate-800 break-words">{col.cell ? col.cell(item) : col.accessorKey ? String(item[col.accessorKey] ?? '') : null}</dd></div>)}</dl></article>)}
+    </div>
+    <div className={cn('hidden lg:block overflow-x-auto rounded-xl border border-slate-200 bg-white scrollbar-thin', className)}>
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         {caption && (
           <caption className="sr-only">{caption}</caption>
@@ -112,6 +116,8 @@ export function Table<T>({
                     ? 'cursor-pointer hover:bg-brand-50/50'
                     : 'hover:bg-slate-50/75'
                 )}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick(item); } } : undefined}
                 onClick={onRowClick ? () => onRowClick(item) : undefined}
               >
                 {columns.map((col, idx) => (
@@ -136,5 +142,6 @@ export function Table<T>({
         </tbody>
       </table>
     </div>
+    </>
   );
 }

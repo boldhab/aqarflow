@@ -25,7 +25,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   const end = Math.min(page * limit, total);
 
   return (
-    <div
+    <nav
+      aria-label="Pagination Navigation"
       className={cn(
         'flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100',
         className
@@ -67,6 +68,6 @@ export const Pagination: React.FC<PaginationProps> = ({
           </svg>
         </Button>
       </div>
-    </div>
+    </nav>
   );
 };

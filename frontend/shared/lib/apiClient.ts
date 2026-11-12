@@ -19,6 +19,8 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
+  const timeout = AbortSignal.timeout(15000);
+  const signal = customConfig.signal ? AbortSignal.any([customConfig.signal, timeout]) : timeout;
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     credentials: 'include',
     headers: {
@@ -26,6 +28,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       ...headers,
     },
     ...customConfig,
+    signal,
   });
 
   // Handle 401 Unauthorized for non-login endpoints
@@ -33,7 +36,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('aqarflow:unauthorized'));
       if (!window.location.pathname.startsWith('/login')) {
-        const currentPath = window.location.pathname;
+        const currentPath = window.location.pathname + window.location.search;
         const redirectParam = currentPath && currentPath !== '/' ? `?redirect=${encodeURIComponent(currentPath)}` : '';
         window.location.href = `/login${redirectParam}`;
       }

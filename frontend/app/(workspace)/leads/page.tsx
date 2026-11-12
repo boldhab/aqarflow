@@ -1,7 +1,3 @@
-import React from 'react';
-import { LeadList } from '@/modules/leads';
-
-export default function WorkspaceLeadsPage() {
-  return <LeadList />;
-}
-
+import { Suspense } from 'react';
+import { WorkflowPage } from '@/modules/workspace/components/WorkflowPage';
+export default function Page() { return <Suspense fallback={<p role="status">Loading…</p>}><WorkflowPage kind="leads"/></Suspense>; }
