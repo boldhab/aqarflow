@@ -1,23 +1,24 @@
 import React from 'react';
 import Link from 'next/link';
+import { ClipboardList, Users, Banknote, MessageCircle } from 'lucide-react';
 
 export const metadata = {
   title: 'About Us | AqarFlow Real Estate Platform',
-  description: 'Learn about AqarFlow, Pakistan\'s leading real estate platform and agency management software.',
+  description: 'Learn about AqarFlow, a real estate platform and agency management software.',
 };
 
 const STATS = [
-  { value: '100%', label: 'Verified Listings', color: 'text-brand-600', bg: 'bg-brand-50 border-brand-100' },
-  { value: '3+', label: 'Major Metros', color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-100' },
-  { value: '<24h', label: 'Agent Response', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-100' },
+  { value: 'Details', label: 'Property information', color: 'text-brand-600', bg: 'bg-brand-50 border-brand-100' },
+  { value: 'Search', label: 'Location filters', color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-100' },
+  { value: 'Direct', label: 'Agent inquiries', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-100' },
   { value: 'PKR', label: 'Transparent Pricing', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-100' },
 ];
 
 const VALUES = [
-  { icon: '🏆', title: 'Verified Listings', desc: 'Every property is verified by our team to ensure accuracy.' },
-  { icon: '🤝', title: 'Licensed Agents', desc: 'Professional, licensed agents who know the local market.' },
-  { icon: '💰', title: 'Transparent Pricing', desc: 'Full pricing transparency in PKR with no hidden fees.' },
-  { icon: '⚡', title: 'Fast Response', desc: 'Get a response from our agents within 24 hours of inquiry.' },
+  { icon: ClipboardList, title: 'Detailed Listings', desc: 'Review location, pricing, and property details before contacting an agent.' },
+  { icon: Users, title: 'Agency Professionals', desc: 'Connect directly with agents who understand their local market.' },
+  { icon: Banknote, title: 'Transparent Pricing', desc: 'Compare asking prices in PKR and discuss terms directly with the agency.' },
+  { icon: MessageCircle, title: 'Fast Response', desc: 'Send an inquiry directly from a listing or contact the agency.' },
 ];
 
 export default function AboutPage() {
@@ -25,14 +26,14 @@ export default function AboutPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
       <div className="text-center space-y-4">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">About AqarFlow</div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Pakistan&apos;s Most Trusted Real Estate Platform</h1>
-        <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">Modern real estate operations and verified public property listings across Lahore, Karachi, and Islamabad.</p>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Find property with clarity and confidence</h1>
+        <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">Modern real estate operations and public property listings across Lahore, Karachi, and Islamabad.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-card">
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-slate-900">Our Mission</h2>
-          <p className="text-slate-600 text-sm leading-relaxed">AqarFlow bridges the gap between prospective buyers, renters, and trusted real estate agencies. We ensure every listing is verified, accurate, and directly connected to licensed agents who understand the local market dynamics in Lahore, Karachi, and Islamabad.</p>
-          <p className="text-slate-600 text-sm leading-relaxed">Our comprehensive portal provides transparent pricing in PKR, genuine high-resolution imagery, and seamless inquiry routing so you never miss out on your next home or commercial investment.</p>
+          <p className="text-slate-600 text-sm leading-relaxed">AqarFlow bridges the gap between prospective buyers, renters, and trusted real estate agencies. Our platform connects listings with agency professionals who understand the local market dynamics in Lahore, Karachi, and Islamabad.</p>
+          <p className="text-slate-600 text-sm leading-relaxed">Our comprehensive portal provides transparent pricing in PKR, property imagery, and seamless inquiry routing so you never miss out on your next home or commercial investment.</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           {STATS.map((stat) => (
@@ -48,7 +49,7 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {VALUES.map((v) => (
             <div key={v.title} className="bg-white border border-slate-200 rounded-2xl p-6 space-y-3 shadow-card hover:shadow-card-hover transition-shadow">
-              <div className="text-3xl">{v.icon}</div>
+              <div className="text-brand-600"><v.icon size={30} aria-hidden="true"/></div>
               <h3 className="font-bold text-slate-900 text-sm">{v.title}</h3>
               <p className="text-xs text-slate-600 leading-relaxed">{v.desc}</p>
             </div>
