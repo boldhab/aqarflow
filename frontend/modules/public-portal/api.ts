@@ -10,7 +10,7 @@ import {
 
 export const publicPortalApi = {
   getProperties: async (
-    params?: PublicPropertyFilters
+    params?: PublicPropertyFilters, signal?: AbortSignal
   ): Promise<{ success: boolean; data: PaginatedPublicListings }> => {
     const query = new URLSearchParams();
     if (params) {
@@ -26,7 +26,7 @@ export const publicPortalApi = {
       if (params.limit) query.append('limit', String(params.limit));
     }
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return apiClient(`/public/properties${qs}`, { skipAuthRedirect: true });
+    return apiClient(`/public/properties${qs}`, { skipAuthRedirect: true, signal });
   },
 
   getPropertyById: async (

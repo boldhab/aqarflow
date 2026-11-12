@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   PropertyItem,
   CreatePropertyPayload,
@@ -10,15 +10,28 @@ import {
   AreaUnit,
 } from '../types';
 import { propertiesApi } from '../api';
-import { Button, Input } from '@/shared/components/ui';
+import { Button, Input, Modal, Alert } from '@/shared/components/ui';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { apiClient } from '@/shared/lib';
+import { apiClient, formatPKR } from '@/shared/lib';
 
 export interface PropertyFormModalProps {
   property?: PropertyItem | null; // If null, create mode; otherwise edit mode
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (savedProperty: PropertyItem) => void;
+}
+
+function formatPakistaniWords(amount: number): string {
+  if (!amount || isNaN(amount)) return '';
+  if (amount >= 10000000) {
+    const crore = (amount / 10000000).toFixed(2).replace(/\.00$/, '');
+    return `${crore} Crore`;
+  }
+  if (amount >= 100000) {
+    const lakh = (amount / 100000).toFixed(2).replace(/\.00$/, '');
+    return `${lakh} Lakh`;
+  }
+  return '';
 }
 
 export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
@@ -55,7 +68,7 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     price: property ? Number(property.price) : 0,
     currency: property?.currency || 'PKR',
     areaValue: property ? Number(property.areaValue) : 0,
-    areaUnit: property?.areaUnit || 'SQFT',
+    areaUnit: property?.areaUnit || 'MARLA',
     bedrooms: property?.bedrooms ?? null,
     bathrooms: property?.bathrooms ?? null,
     address: property?.address || '',
@@ -66,11 +79,13 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     assignedAgentId: property?.assignedAgentId || '',
   });
 
+  const initial = useRef(JSON.stringify(formData));
+  const [confirmClose, setConfirmClose] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  const requestClose = () => { if (submitting) return; if (JSON.stringify(formData) !== initial.current) setConfirmClose(true); else onClose(); };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -99,7 +114,7 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     e.preventDefault();
     setGeneralError(null);
 
-    if (!validate()) return;
+    if (!validate()) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return; }
 
     try {
       setSubmitting(true);
@@ -107,8 +122,8 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
         ...formData,
         price: Number(formData.price),
         areaValue: Number(formData.areaValue),
-        bedrooms: formData.bedrooms ? Number(formData.bedrooms) : null,
-        bathrooms: formData.bathrooms ? Number(formData.bathrooms) : null,
+        bedrooms: formData.bedrooms == null ? null : Number(formData.bedrooms),
+        bathrooms: formData.bathrooms == null ? null : Number(formData.bathrooms),
         latitude: formData.latitude ? Number(formData.latitude) : null,
         longitude: formData.longitude ? Number(formData.longitude) : null,
         referenceCode: formData.referenceCode?.trim() || undefined,
@@ -138,70 +153,97 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-modal max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto animate-slide-up">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <h3 className="text-lg font-bold text-slate-900">
-            {isEdit ? 'Edit Property' : 'Create New Property'}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 hover:bg-slate-100 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
+  const wordPreview = formatPakistaniWords(Number(formData.price));
 
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={requestClose}
+      title={isEdit ? 'Edit Property Listing' : 'Create New Property'}
+      description={
+        isEdit
+          ? `Updating listing details for ref: ${property?.referenceCode || ''}`
+          : 'Fill in the specifications below to create an agency property listing.'
+      }
+      size="xl"
+      footer={
+        <div className="flex items-center justify-end gap-2.5 w-full">
+          <Button type="button" variant="outline" size="sm" onClick={requestClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="property-form"
+            variant="primary"
+            size="sm"
+            isLoading={submitting}
+          >
+            {submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Property'}
+          </Button>
+        </div>
+      }
+    >
+      <form id="property-form" onSubmit={handleSubmit} className="space-y-4">
         {generalError && (
-          <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+          <Alert variant="error" onDismiss={() => setGeneralError(null)}>
             {generalError}
-          </div>
+          </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Input
-                label="Reference Code (optional)"
-                placeholder="Auto-generated if blank (e.g. AF-0001)"
-                value={formData.referenceCode || ''}
-                onChange={(e) => setFormData({ ...formData, referenceCode: e.target.value })}
-                error={errors.referenceCode}
-              />
-            </div>
-            <div>
-              <Input
-                label="Property Title *"
-                placeholder="e.g. 3-Bed Apartment in Gulberg"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                error={errors.title}
-                required
-              />
-            </div>
-          </div>
+        <h3 className="font-semibold text-brand-700 border-b pb-2">1. Listing basics</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Reference Code"
+            hint="Optional (auto-generated e.g. AF-1001 if left blank)"
+            placeholder="e.g. AF-1001"
+            value={formData.referenceCode || ''}
+            onChange={(e) => setFormData({ ...formData, referenceCode: e.target.value })}
+            error={errors.referenceCode}
+          />
+          <Input
+            label="Property Title"
+            placeholder="e.g. 1 Kanal Modern Villa in DHA Phase 6"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            error={errors.title}
+            required
+          />
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Purpose *</label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="property-purpose" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Purpose <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
               <select
+                id="property-purpose"
                 value={formData.purpose}
                 onChange={(e) => setFormData({ ...formData, purpose: e.target.value as PropertyPurpose })}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 pr-8 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               >
                 <option value="SALE">For Sale</option>
                 <option value="RENT">For Rent</option>
                 <option value="LEASE">For Lease</option>
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-slate-400">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Type *</label>
+          <div>
+            <label htmlFor="property-type" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Type <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
               <select
+                id="property-type"
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as PropertyType })}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 pr-8 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               >
                 <option value="APARTMENT">Apartment</option>
                 <option value="HOUSE">House</option>
@@ -211,14 +253,24 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                 <option value="OFFICE">Office</option>
                 <option value="SHOP">Shop</option>
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-slate-400">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Status *</label>
+          <div>
+            <label htmlFor="property-status" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
               <select
+                id="property-status"
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as PropertyStatus })}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 pr-8 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="AVAILABLE">Available</option>
@@ -229,134 +281,152 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                 <option value="LEASED">Leased</option>
                 <option value="INACTIVE">Inactive</option>
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-slate-400">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Input
-                label="Price *"
-                type="number"
-                step="any"
-                min="1"
-                placeholder="Amount in PKR"
-                value={formData.price || ''}
-                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                error={errors.price}
-                required
-              />
-            </div>
-            <div>
-              <Input
-                label="Currency"
-                value={formData.currency}
-                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                disabled
-              />
-            </div>
+        <h3 className="font-semibold text-brand-700 border-b pt-4 pb-2">2. Pricing and specifications</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2">
+            <Input
+              label="Asking Price (PKR)"
+              type="number"
+              step="any"
+              min="1"
+              placeholder="e.g. 35000000"
+              value={formData.price || ''}
+              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+              error={errors.price}
+              hint={
+                formData.price && Number(formData.price) > 0
+                  ? `${formatPKR(formData.price)}${wordPreview ? ` (${wordPreview})` : ''}`
+                  : 'Enter price in PKR'
+              }
+              required
+            />
           </div>
+          <div>
+            <Input
+              label="Currency"
+              value={formData.currency}
+              disabled
+              hint="Fixed to Pakistani Rupee (PKR)"
+            />
+          </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Input
-                label="Area Value *"
-                type="number"
-                step="any"
-                min="0.1"
-                placeholder="e.g. 2400 or 1"
-                value={formData.areaValue || ''}
-                onChange={(e) => setFormData({ ...formData, areaValue: parseFloat(e.target.value) || 0 })}
-                error={errors.areaValue}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Area Unit *</label>
+        {/* Area Specifications */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Input
+              label="Area Value"
+              type="number"
+              step="any"
+              min="0.1"
+              placeholder="e.g. 10 or 2500"
+              value={formData.areaValue || ''}
+              onChange={(e) => setFormData({ ...formData, areaValue: parseFloat(e.target.value) || 0 })}
+              error={errors.areaValue}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="property-areaUnit" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Area Unit <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
               <select
+                id="property-areaUnit"
                 value={formData.areaUnit}
                 onChange={(e) => setFormData({ ...formData, areaUnit: e.target.value as AreaUnit })}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 pr-8 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               >
-                <option value="SQFT">Sq Ft</option>
-                <option value="SQM">Sq M</option>
-                <option value="MARLA">Marla</option>
-                <option value="KANAL">Kanal</option>
+                <option value="MARLA">Marla (225 sq ft)</option>
+                <option value="KANAL">Kanal (20 Marla)</option>
+                <option value="SQFT">Square Feet (Sq Ft)</option>
+                <option value="SQM">Square Meters (Sq M)</option>
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-slate-400">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Input
-                label="Bedrooms"
-                type="number"
-                min="0"
-                placeholder="e.g. 3"
-                value={formData.bedrooms ?? ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    bedrooms: e.target.value === '' ? null : parseInt(e.target.value, 10),
-                  })
-                }
-                error={errors.bedrooms}
-              />
-            </div>
-            <div>
-              <Input
-                label="Bathrooms"
-                type="number"
-                min="0"
-                placeholder="e.g. 2"
-                value={formData.bathrooms ?? ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    bathrooms: e.target.value === '' ? null : parseInt(e.target.value, 10),
-                  })
-                }
-                error={errors.bathrooms}
-              />
-            </div>
-          </div>
+        {/* Bedrooms & Bathrooms */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Bedrooms"
+            type="number"
+            min="0"
+            placeholder="e.g. 4"
+            value={formData.bedrooms ?? ''}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                bedrooms: e.target.value === '' ? null : parseInt(e.target.value, 10),
+              })
+            }
+            error={errors.bedrooms}
+            hint="Leave blank for plots or commercial spaces"
+          />
+          <Input
+            label="Bathrooms"
+            type="number"
+            min="0"
+            placeholder="e.g. 4"
+            value={formData.bathrooms ?? ''}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                bathrooms: e.target.value === '' ? null : parseInt(e.target.value, 10),
+              })
+            }
+            error={errors.bathrooms}
+            hint="Leave blank if not applicable"
+          />
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <Input
-                label="City"
-                placeholder="e.g. Lahore, Karachi, Islamabad"
-                value={formData.city || ''}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Locality / Sector"
-                placeholder="e.g. DHA Phase 6, Gulberg III"
-                value={formData.locality || ''}
-                onChange={(e) => setFormData({ ...formData, locality: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Street Address"
-                placeholder="e.g. 12-B Main Boulevard"
-                value={formData.address || ''}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-          </div>
+        <h3 className="font-semibold text-brand-700 border-b pt-4 pb-2">3. Location and description</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Input
+            label="City"
+            placeholder="e.g. Lahore, Karachi, Islamabad"
+            value={formData.city || ''}
+            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+          />
+          <Input
+            label="Locality / Sector"
+            placeholder="e.g. DHA Phase 6, Gulberg III"
+            value={formData.locality || ''}
+            onChange={(e) => setFormData({ ...formData, locality: e.target.value })}
+          />
+          <Input
+            label="Street Address"
+            placeholder="e.g. 12-B Main Boulevard"
+            value={formData.address || ''}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          />
+        </div>
 
-          {isAdmin && (
-            <div>
-              <label htmlFor="assignedAgent" className="block text-sm font-medium text-slate-700 mb-1">
-                Assigned Agent
-              </label>
+        {isAdmin && (
+          <div>
+            <label htmlFor="assignedAgent" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Assigned Specialist
+            </label>
+            <div className="relative">
               <select
                 id="assignedAgent"
                 value={formData.assignedAgentId || ''}
                 onChange={(e) => setFormData({ ...formData, assignedAgentId: e.target.value || null })}
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 pr-8 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               >
                 <option value="">Unassigned</option>
                 {agents.map((ag) => (
@@ -365,30 +435,30 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                   </option>
                 ))}
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-slate-400">
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              rows={3}
-              value={formData.description || ''}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Detailed property description, features, nearby amenities..."
-              className="w-full px-3 py-2 border rounded-lg text-sm bg-white border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
+        )}
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
-              {submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Property'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div>
+          <label htmlFor="property-description" className="block text-sm font-medium text-slate-700 mb-1.5">
+            Detailed Description
+          </label>
+          <textarea
+            id="property-description"
+            rows={3}
+            value={formData.description || ''}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Highlight architecture, fittings, parking, nearby schools, parks, and amenities..."
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white placeholder:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-brand-500 resize-none"
+          />
+        </div>
+      </form>
+      {confirmClose && <Modal isOpen onClose={()=>setConfirmClose(false)} title="Discard unsaved changes?" size="sm" footer={<><Button variant="outline" onClick={()=>setConfirmClose(false)}>Keep editing</Button><Button variant="danger" onClick={onClose}>Discard</Button></>}><p className="text-sm text-slate-600">Your property details have not been saved.</p></Modal>}
+    </Modal>
   );
 };

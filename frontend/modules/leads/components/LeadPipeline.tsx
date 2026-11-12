@@ -38,12 +38,12 @@ export const LeadPipeline: React.FC = () => {
                 {stageLeads.map((lead) => (
                   <div
                     key={lead.id}
-                    className="p-3 bg-white border border-slate-200 rounded-md shadow-sm text-sm"
+                    className="p-3 bg-white border border-slate-200 rounded-xl shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all text-sm"
                   >
                     <p className="font-semibold text-slate-900">{lead.name}</p>
                     <p className="text-xs text-slate-500">{lead.phone}</p>
                     {lead.assignedTo && (
-                      <p className="text-[11px] text-blue-600 mt-1">
+                      <p className="text-[11px] text-brand-600 font-medium mt-1">
                         Agent: {lead.assignedTo.name}
                       </p>
                     )}
