@@ -1,3 +1,4 @@
+import { transaction, audit } from '@/modules/operations/transaction';
 import { usersRepository, UsersRepository } from './users.repository';
 import { CreateUserInput, UpdateUserInput } from './users.schema';
 import { UserDTO, AgentOptionDTO } from './users.types';
@@ -30,7 +31,15 @@ export class UsersService {
 
   async updateUser(id: string, agencyId: string, input: UpdateUserInput): Promise<UserDTO> {
     await this.getUserById(id, agencyId);
-    return this.repo.update(id, agencyId, input);
+    return transaction(async tx => {
+      const current = await tx.user.findFirstOrThrow({where:{id,agencyId}});
+      if(current.role === 'ADMIN' && current.isActive && (input.isActive === false || input.role === 'AGENT')) {
+        if(await tx.user.count({where:{agencyId,role:'ADMIN',isActive:true}}) <= 1) throw ApiError.conflict('The agency must retain an active administrator');
+      }
+      const next = await tx.user.update({where:{id},data:input,select:{id:true,agencyId:true,name:true,email:true,role:true,phone:true,isActive:true,createdAt:true,updatedAt:true}});
+      await audit(tx,agencyId,undefined,'USER_UPDATED','User',id,current,next);
+      return next;
+    });
   }
 }
 

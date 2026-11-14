@@ -6,6 +6,7 @@ export interface UserDTO {
   name: string;
   email: string;
   role: Role;
+  isActive: boolean;
   phone: string | null;
   createdAt: Date;
   updatedAt: Date;
