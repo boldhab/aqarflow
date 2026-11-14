@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { S3StorageService } from './s3.storage';
 import path from 'path';
 import crypto from 'crypto';
 
@@ -52,7 +53,8 @@ export class LocalStorageService implements IStorageService {
     try {
       // Normalize to prevent directory traversal
       const safeKey = storageKey.replace(/^(\/uploads\/|\/)/, '');
-      const filePath = path.join(this.baseDir, safeKey);
+      const filePath = path.resolve(this.baseDir, safeKey);
+      if (!filePath.startsWith(path.resolve(this.baseDir) + path.sep)) throw new Error('Invalid storage key');
       if (fs.existsSync(filePath)) {
         await fs.promises.unlink(filePath);
       }
@@ -76,4 +78,4 @@ export class LocalStorageService implements IStorageService {
   }
 }
 
-export const storageService = new LocalStorageService();
+export const storageService: IStorageService = process.env.STORAGE_DRIVER === 's3' ? new S3StorageService() : new LocalStorageService();

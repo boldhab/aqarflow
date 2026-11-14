@@ -1,6 +1,7 @@
 'use client';
+import { CoreEditor } from '@/modules/operations/CoreEditor';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Table,
@@ -20,6 +21,7 @@ export const VisitList: React.FC = () => {
   const { visits, loading, error, refetch } = useVisits();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [selectedVisit, setSelectedVisit] = useState<VisitItem | null>(null);
+  useEffect(()=>{setSelectedVisit(previous=>previous?visits.find(item=>item.id===previous.id)??previous:null);},[visits]);
 
   const filteredVisits = visits.filter((v) => {
     if (filterStatus === 'ALL') return true;
@@ -265,6 +267,7 @@ export const VisitList: React.FC = () => {
               </div>
             )}
           </div>
+          <CoreEditor kind="visits" id={selectedVisit.id} refresh={refetch}/>
         </Modal>
       )}
     </div>

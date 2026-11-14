@@ -123,15 +123,68 @@ function WorkflowForm({
     [scheduledAt, setScheduledAt] = useState(""),
     [notes, setNotes] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState(60),
+    [agentId, setAgentId] = useState(""),
+    [agents, setAgents] = useState<Choice[]>([]),
+    [conflictWarning, setConflictWarning] = useState(""),
+    [checking, setChecking] = useState(false);
+  useEffect(() => {
+    if (kind !== "visits") return;
+    apiClient<{ data: Choice[] }>("/users?role=AGENT")
+      .then((r) => setAgents(r.data))
+      .catch(() => {});
+  }, [kind]);
+  useEffect(() => {
+    if (kind !== "visits" || !scheduledAt || !user?.id) return;
+    const controller = new AbortController();
+    let active = true;
+    setChecking(true);
+    setConflictWarning("");
+    const timer = setTimeout(async () => {
+      try {
+        const response = await apiClient<{
+          data: {
+            conflicts: { scheduledAt: string; property: { title: string } }[];
+          };
+        }>("/visits/check-conflict", {
+          method: "POST",
+          signal: controller.signal,
+          body: JSON.stringify({
+            agentId: agentId || user.id,
+            scheduledAt: new Date(`${scheduledAt}+05:00`).toISOString(),
+            durationMinutes,
+          }),
+        });
+        if (active)
+          setConflictWarning(
+            response.data.conflicts.length
+              ? "This agent already has a visit during the selected time. Choose another time or agent."
+              : "",
+          );
+      } catch {
+        if (active)
+          setConflictWarning(
+            "Availability could not be checked. Saving will validate this appointment again.",
+          );
+      } finally {
+        if (active) setChecking(false);
+      }
+    }, 300);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [kind, scheduledAt, agentId, user?.id, durationMinutes]);
   const dirty = Boolean(
     name ||
-      phone ||
-      email ||
-      propertyId ||
-      leadId ||
-      value ||
-      scheduledAt ||
-      notes,
+    phone ||
+    email ||
+    propertyId ||
+    leadId ||
+    value ||
+    scheduledAt ||
+    notes,
   );
   function close() {
     if (busy) return;
@@ -184,7 +237,8 @@ function WorkflowForm({
             ? {
                 propertyId,
                 leadId,
-                agentId: user?.id,
+                agentId: agentId || user?.id,
+                durationMinutes,
                 scheduledAt: new Date(`${scheduledAt}+05:00`).toISOString(),
                 notes,
               }
@@ -318,6 +372,51 @@ function WorkflowForm({
               Add a property and a lead before creating this record.
             </p>
           )}
+        {kind === "visits" && (
+          <div className="space-y-3">
+            {user?.role === "ADMIN" && (
+              <label className="block text-sm font-semibold">
+                Assigned agent
+                <select
+                  className="mt-2 w-full rounded-xl border border-slate-300 p-3"
+                  value={agentId}
+                  onChange={(e) => setAgentId(e.target.value)}
+                >
+                  <option value="">Myself</option>
+                  {agents
+                    .filter((a) => a.id !== user.id)
+                    .map((a) => (
+                      <option value={a.id} key={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
+            <Input
+              label="Visit duration (minutes)"
+              type="number"
+              min="5"
+              max="1440"
+              required
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(Number(e.target.value))}
+            />
+            {checking && (
+              <p role="status" className="text-sm text-slate-600">
+                Checking agent availability…
+              </p>
+            )}
+            {conflictWarning && (
+              <p
+                role="alert"
+                className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"
+              >
+                {conflictWarning}
+              </p>
+            )}
+          </div>
+        )}
         {kind === "visits" && (
           <Input
             label="Appointment date and time (PKT)"

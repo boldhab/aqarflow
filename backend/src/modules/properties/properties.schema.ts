@@ -46,13 +46,13 @@ export const createPropertySchema = z.object({
     locality: z.string().trim().optional().nullable(),
     latitude: z.number().optional().nullable(),
     longitude: z.number().optional().nullable(),
-    assignedAgentId: z.string().uuid().optional().nullable(),
+    assignedAgentId: z.string().guid().optional().nullable(),
   }),
 });
 
 export const updatePropertySchema = z.object({
   params: z.object({
-    id: z.string().uuid('Invalid property ID'),
+    id: z.string().guid('Invalid property ID'),
   }),
   body: z.object({
     referenceCode: z.string().trim().min(1, 'Reference code cannot be empty').max(50).optional(),
@@ -72,7 +72,7 @@ export const updatePropertySchema = z.object({
     locality: z.string().trim().optional().nullable(),
     latitude: z.number().optional().nullable(),
     longitude: z.number().optional().nullable(),
-    assignedAgentId: z.string().uuid().optional().nullable(),
+    assignedAgentId: z.string().guid().optional().nullable(),
   }),
 });
 
@@ -82,45 +82,27 @@ export const listPropertiesQuerySchema = z.object({
     purpose: propertyPurposeEnum.optional(),
     type: propertyTypeEnum.optional(),
     city: z.string().trim().optional(),
-    minPrice: z
-      .string()
-      .optional()
-      .transform((v) => (v ? parseFloat(v) : undefined)),
-    maxPrice: z
-      .string()
-      .optional()
-      .transform((v) => (v ? parseFloat(v) : undefined)),
-    bedrooms: z
-      .string()
-      .optional()
-      .transform((v) => (v ? parseInt(v, 10) : undefined)),
-    isPublished: z
-      .string()
-      .optional()
-      .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
+    minPrice: z.coerce.number().finite().nonnegative().optional(),
+    maxPrice: z.coerce.number().finite().nonnegative().optional(),
+    bedrooms: z.coerce.number().int().nonnegative().optional(),
+    isPublished: z.union([z.boolean(),z.enum(['true','false']).transform(v=>v==='true')]).optional(),
     search: z.string().trim().optional(),
     sort: propertySortEnum.optional().default('newest'),
-    page: z
-      .string()
-      .optional()
-      .transform((v) => (v ? Math.max(1, parseInt(v, 10)) : 1)),
-    limit: z
-      .string()
-      .optional()
-      .transform((v) => (v ? Math.min(50, Math.max(1, parseInt(v, 10))) : 20)),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
   }),
 });
 
 export const propertyIdParamSchema = z.object({
   params: z.object({
-    id: z.string().uuid('Invalid property ID'),
+    id: z.string().guid('Invalid property ID'),
   }),
 });
 
 export const propertyImageIdParamSchema = z.object({
   params: z.object({
-    id: z.string().uuid('Invalid property ID'),
-    imageId: z.string().uuid('Invalid image ID'),
+    id: z.string().guid('Invalid property ID'),
+    imageId: z.string().guid('Invalid image ID'),
   }),
 });
 

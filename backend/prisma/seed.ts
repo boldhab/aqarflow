@@ -510,6 +510,7 @@ async function main() {
           leadId: lead.id,
           agentId: agent.id,
           scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          endsAt: new Date(Date.now() + 25 * 60 * 60 * 1000),
           status: VisitStatus.SCHEDULED,
           notes: 'Client visiting Gulberg apartment',
         },

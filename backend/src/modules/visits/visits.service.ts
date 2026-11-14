@@ -1,3 +1,4 @@
+import { saveVisit } from '@/modules/operations/core.service';
 import { visitsRepository, VisitsRepository } from './visits.repository';
 import { CreateVisitInput, UpdateVisitInput, ListVisitsQuery } from './visits.schema';
 import { ApiError } from '@/shared/errors';
@@ -18,12 +19,12 @@ export class VisitsService {
   }
 
   async createVisit(agencyId: string, input: CreateVisitInput) {
-    return this.repo.create(agencyId, input);
+    return saveVisit(agencyId, input);
   }
 
   async updateVisit(id: string, agencyId: string, input: UpdateVisitInput) {
     await this.getVisit(id, agencyId);
-    return this.repo.update(id, agencyId, input);
+    return saveVisit(agencyId, input, id);
   }
 }
 

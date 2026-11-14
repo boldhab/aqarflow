@@ -29,6 +29,7 @@ export class DealsController {
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
+      if(req.user.role === 'AGENT') req.body.agentId = req.user.id;
       const deal = await this.service.createDeal(req.user.agencyId, req.body);
       return res.status(201).json({ success: true, data: deal });
     } catch (error) {
@@ -39,6 +40,8 @@ export class DealsController {
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw ApiError.unauthorized();
+      const existing = await this.service.getDeal(req.params.id,req.user.agencyId);
+      if(req.user.role === 'AGENT' && (existing.agentId !== req.user.id || (req.body.agentId && req.body.agentId !== req.user.id))) throw ApiError.forbidden('Only your assigned records may be changed');
       const deal = await this.service.updateDeal(req.params.id, req.user.agencyId, req.body);
       return res.status(200).json({ success: true, data: deal });
     } catch (error) {

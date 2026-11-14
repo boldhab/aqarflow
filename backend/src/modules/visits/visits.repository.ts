@@ -59,6 +59,7 @@ export class VisitsRepository {
         leadId: data.leadId,
         agentId: data.agentId,
         scheduledAt: new Date(data.scheduledAt),
+        endsAt: new Date(new Date(data.scheduledAt).getTime() + (data.durationMinutes ?? 60)*60000),
         notes: data.notes,
       },
       include: {

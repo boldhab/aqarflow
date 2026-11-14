@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/modules/operations/CustomerPortal';
 import Link from "next/link";
 import { BedDouble, Bath, Ruler, MapPin, ArrowUpRight } from "lucide-react";
 import { PublicListingItem } from "../types";
@@ -12,7 +13,7 @@ export function ListingCard({
   list?: boolean;
 }) {
   return (
-    <Link
+    <div className="relative"><Link
       href={`/properties/${p.id}`}
       data-testid="property-card"
       className={`group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:border-brand-300 transition-all flex ${list ? "flex-col sm:flex-row" : "flex-col"}`}
@@ -88,6 +89,6 @@ export function ListingCard({
           </span>
         </div>
       </div>
-    </Link>
+    </Link><div className="absolute right-3 top-3 z-10"><FavoriteButton propertyId={p.id}/></div></div>
   );
 }

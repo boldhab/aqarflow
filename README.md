@@ -201,3 +201,7 @@ The root and package configurations provide standard scripts:
 `/properties` is always the public marketplace, including for signed-in users. Property management lives at `/inventory`. Dashboard creation shortcuts use `?create=1`; inventory filters and the CRM pipeline view are preserved in the URL.
 
 See [frontend improvements](docs/frontend-improvements.md) for behavior changes, validation, and content limitations.
+
+## Product operations
+
+See [the refined implementation roadmap](docs/implementation-roadmap.md) and [operations, API contracts, deployment, and verification](docs/product-operations.md) for the five-phase expansion.

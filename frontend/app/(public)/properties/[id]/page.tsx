@@ -1,3 +1,4 @@
+import { FavoriteButton, PortalInquiry } from '@/modules/operations/CustomerPortal';
 import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -236,7 +237,7 @@ export default async function PropertyDetailPage({
 
         {/* Right Column: Sticky Inquiry Form */}
         <div className="lg:sticky lg:top-24">
-          <div id="property-inquiry" className="scroll-mt-24"><InquiryForm propertyId={property.id} propertyTitle={property.title} /></div>
+          <div id="property-inquiry" className="scroll-mt-24"><FavoriteButton propertyId={id}/><PortalInquiry propertyId={id}/><InquiryForm propertyId={property.id} propertyTitle={property.title} /></div>
         </div>
       </div>
       <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t bg-white/95 backdrop-blur p-3 flex gap-3 shadow-lg" style={{paddingBottom:'max(12px, env(safe-area-inset-bottom))'}}>

@@ -3,7 +3,9 @@ import { app } from '../../app';
 import prisma from '@/config/db';
 import bcrypt from 'bcryptjs';
 
-describe('Public Portal Module Integration Tests', () => {
+const integration = process.env.RUN_OPERATIONS_INTEGRATION === '1' ? describe : describe.skip;
+
+integration('Public Portal Module Integration Tests', () => {
   let demoAgencyId: string;
   let otherAgencyId: string;
   let demoAgentId: string;

@@ -1,6 +1,7 @@
 'use client';
+import { CoreEditor } from '@/modules/operations/CoreEditor';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   Column,
@@ -19,6 +20,7 @@ export const DealList: React.FC = () => {
   const { deals, loading, error, refetch } = useDeals();
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedDeal, setSelectedDeal] = useState<DealItem | null>(null);
+  useEffect(()=>{setSelectedDeal(previous=>previous?deals.find(item=>item.id===previous.id)??previous:null);},[deals]);
 
   const filteredDeals = deals.filter((d) => {
     if (statusFilter === 'ALL') return true;
@@ -269,6 +271,7 @@ export const DealList: React.FC = () => {
               </div>
             )}
           </div>
+          <CoreEditor kind="deals" id={selectedDeal.id} refresh={refetch}/>
         </Modal>
       )}
     </div>

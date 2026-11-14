@@ -17,9 +17,9 @@ export const createLeadSchema = z.object({
     phone: z.string().min(5, 'Phone number is required'),
     stage: leadStageEnum.default('NEW'),
     source: z.enum(['WEBSITE', 'MANUAL']).default('MANUAL'),
-    propertyId: z.string().uuid().optional().nullable(),
-    assignedAgentId: z.string().uuid().optional().nullable(),
-    assignedToId: z.string().uuid().optional().nullable(),
+    propertyId: z.string().guid().optional().nullable(),
+    assignedAgentId: z.string().guid().optional().nullable(),
+    assignedToId: z.string().guid().optional().nullable(),
     message: z.string().optional().nullable(),
     preferredContact: z.enum(['PHONE', 'EMAIL', 'WHATSAPP']).default('PHONE'),
   }),
@@ -27,24 +27,24 @@ export const createLeadSchema = z.object({
 
 export const updateLeadSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
   }),
   body: createLeadSchema.shape.body.partial(),
 });
 
 export const assignLeadSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
   }),
   body: z.object({
-    assignedAgentId: z.string().uuid().optional(),
-    assignedToId: z.string().uuid().optional(),
+    assignedAgentId: z.string().guid().optional(),
+    assignedToId: z.string().guid().optional(),
   }),
 });
 
 export const addLeadNoteSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
   }),
   body: z.object({
     content: z.string().min(1, 'Note content cannot be empty'),
@@ -54,11 +54,11 @@ export const addLeadNoteSchema = z.object({
 export const listLeadsQuerySchema = z.object({
   query: z.object({
     stage: leadStageEnum.optional(),
-    assignedAgentId: z.string().uuid().optional(),
-    assignedToId: z.string().uuid().optional(),
-    propertyId: z.string().uuid().optional(),
-    page: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 1)),
-    limit: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 20)),
+    assignedAgentId: z.string().guid().optional(),
+    assignedToId: z.string().guid().optional(),
+    propertyId: z.string().guid().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
   }),
 });
 

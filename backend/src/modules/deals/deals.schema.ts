@@ -1,25 +1,36 @@
 import { z } from 'zod';
 
+export const dealStageEnum = z.enum(['INQUIRY','QUALIFIED','VISIT','OFFER','NEGOTIATION','BOOKING','DOCUMENTATION','CLOSED_WON','CLOSED_LOST']);
 export const dealStatusEnum = z.enum(['OPEN', 'WON', 'LOST']);
 
 export const createDealSchema = z.object({
   body: z.object({
-    propertyId: z.string().uuid('Valid property ID is required'),
-    leadId: z.string().uuid('Valid lead ID is required'),
-    agentId: z.string().uuid().optional(),
+    propertyId: z.string().guid('Valid property ID is required'),
+    leadId: z.string().guid('Valid lead ID is required'),
+    agentId: z.string().guid().optional(),
+    stage: dealStageEnum.optional(),
+    offerAmount: z.number().positive().optional(),
+    agreedAmount: z.number().positive().optional(),
+    expectedCloseAt: z.string().datetime().optional(),
+    notes: z.string().max(2000).optional(),
     value: z.number().positive('Deal value must be positive'),
-    status: dealStatusEnum.default('OPEN'),
+    status: dealStatusEnum.optional(),
   }),
 });
 
 export const updateDealSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
   }),
   body: z.object({
+    stage: dealStageEnum.optional(),
+    offerAmount: z.number().positive().optional(),
+    agreedAmount: z.number().positive().optional(),
+    expectedCloseAt: z.string().datetime().optional(),
+    notes: z.string().max(2000).optional(),
     value: z.number().positive().optional(),
     status: dealStatusEnum.optional(),
-    agentId: z.string().uuid().optional(),
+    agentId: z.string().guid().optional(),
     closedAt: z.string().datetime().optional().nullable(),
   }),
 });
@@ -27,10 +38,10 @@ export const updateDealSchema = z.object({
 export const listDealsQuerySchema = z.object({
   query: z.object({
     status: dealStatusEnum.optional(),
-    agentId: z.string().uuid().optional(),
-    leadId: z.string().uuid().optional(),
-    page: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 1)),
-    limit: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 20)),
+    agentId: z.string().guid().optional(),
+    leadId: z.string().guid().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
   }),
 });
 

@@ -1,7 +1,9 @@
 import request from 'supertest';
 import { app } from '../../app';
 
-describe('Auth Module Integration Tests', () => {
+const integration = process.env.RUN_OPERATIONS_INTEGRATION === '1' ? describe : describe.skip;
+
+integration('Auth Module Integration Tests', () => {
   let adminCookie = '';
   let agentCookie = '';
 

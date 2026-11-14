@@ -1,4 +1,5 @@
 import prisma from '@/config/db';
+import { transaction } from '@/modules/operations/transaction';
 import { PublicPropertiesQuery } from './public-portal.schema';
 import { PropertyPurpose, PropertyType, PropertyStatus, PreferredContact } from '@prisma/client';
 
@@ -168,9 +169,12 @@ export class PublicPortalRepository {
   }
 
   async createInquiry(data: CreateInquiryRecord) {
-    return prisma.lead.create({
+    return transaction(async tx => {
+    const contact = await tx.contact.upsert({where:{agencyId_normalizedPhone:{agencyId:data.agencyId,normalizedPhone:data.normalizedPhone}},create:{agencyId:data.agencyId,name:data.name,phone:data.phone,normalizedPhone:data.normalizedPhone,email:data.email},update:{}});
+    const lead = await tx.lead.create({
       data: {
         agencyId: data.agencyId,
+        contactId: contact.id,
         propertyId: data.propertyId || null,
         assignedAgentId: data.assignedAgentId || null,
         name: data.name,
@@ -187,6 +191,11 @@ export class PublicPortalRepository {
       select: {
         id: true,
       },
+    });
+    await tx.activity.create({data:{contactId:contact.id,type:'SYSTEM_NOTE',subject:'Website inquiry received',description:data.message}});
+    if(data.email)await tx.emailJob.create({data:{agencyId:data.agencyId,recipient:data.email,subject:'We received your inquiry',body:`Hello ${data.name}, our team will follow up on your property inquiry.`}});
+    if(data.assignedAgentId)await tx.notification.create({data:{agencyId:data.agencyId,userId:data.assignedAgentId,title:'New website inquiry',body:`${data.name} submitted an inquiry`,linkUrl:'/leads'}});
+    return lead;
     });
   }
 }
