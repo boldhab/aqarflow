@@ -19,7 +19,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: [
+  webServer: process.env.PLAYWRIGHT_EXTERNAL_SERVERS ? undefined : [
     {
       command: 'npm run dev:backend',
       url: 'http://localhost:5000/health',

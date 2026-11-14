@@ -8,7 +8,7 @@ for (const width of [1440, 375]) {
     page.on("pageerror", (e) => errors.push(e.message));
     for (const route of ["/", "/properties", "/about", "/contact", "/login"]) {
       await page.goto(route);
-      await expect(page.locator("h1")).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
