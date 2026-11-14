@@ -15,6 +15,7 @@ const NAV_LINKS: NavLinkItem[] = [
   { label: 'Home', href: '/', exact: true },
   { label: 'Properties', href: '/properties', exact: false },
   { label: 'About Us', href: '/about', exact: false },
+  { label: 'My Account', href: '/portal/dashboard', exact: false },
   { label: 'Contact', href: '/contact', exact: false },
 ];
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { NotificationBell } from '@/modules/operations/NotificationBell';
 import { Sidebar } from '@/shared/components/layout';
 import { useAuth } from '@/shared/hooks';
 import { useDialogFocus } from '@/shared/hooks/useDialogFocus';
@@ -139,6 +140,7 @@ function WorkspaceLayout({ children }: { children: React.ReactNode }) {
 
           {/* Right: Quick Portal Link & User Pill */}
           <div className="flex items-center gap-3 flex-shrink-0">
+            <NotificationBell/>
             <Link
               href="/"
               target="_blank"
@@ -167,7 +169,7 @@ function WorkspaceLayout({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </div>
-        </header>
+          </header>
 
         {/* Main Viewport */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
