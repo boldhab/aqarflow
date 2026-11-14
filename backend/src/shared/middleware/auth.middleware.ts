@@ -25,6 +25,7 @@ export const authMiddleware = async (
 
   try {
     const payload = verifyToken(token);
+    if (!payload.userId || !['ADMIN','AGENT'].includes(payload.role)) return next(ApiError.unauthorized('Staff session required'));
 
     // 3. Load user from database to ensure user exists and is active
     const user = await prisma.user.findUnique({
