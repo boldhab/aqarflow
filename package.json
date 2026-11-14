@@ -19,6 +19,15 @@
     "prisma:seed": "npm run prisma:seed --workspace=backend"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "prettier": "^3.10.1"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.23"
+    },
+    "swagger-jsdoc": {
+      "glob": "^14.0.2"
+    }
   }
 }

@@ -15,3 +15,7 @@ export const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
   DEFAULT_AGENCY_SLUG: process.env.DEFAULT_AGENCY_SLUG || 'demo-agency',
 };
+
+if (env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32)) {
+  throw new Error('Production requires JWT_SECRET with at least 32 characters');
+}
