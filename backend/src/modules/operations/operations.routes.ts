@@ -1,0 +1,20 @@
+import { authMiddleware } from "@/shared/middleware";
+import { Router } from "express";
+import { administrationRouter } from "./administration.routes";
+import { contactsRouter } from "./contacts.routes";
+import { financeRouter } from "./finance.routes";
+import { maintenanceRouter } from "./maintenance.routes";
+import { rentScheduleRouter } from "./rent-schedule.routes";
+import { rentalsRouter } from "./rentals.routes";
+export const operationsRouter = Router();
+operationsRouter.use(authMiddleware);
+operationsRouter.use(rentScheduleRouter);
+operationsRouter.use("/leases", (req, res, next) => {
+  req.url = "/rentals" + (req.url === "/" ? "" : req.url);
+  rentalsRouter(req, res, next);
+});
+operationsRouter.use(contactsRouter);
+operationsRouter.use(rentalsRouter);
+operationsRouter.use(financeRouter);
+operationsRouter.use(maintenanceRouter);
+operationsRouter.use(administrationRouter);
