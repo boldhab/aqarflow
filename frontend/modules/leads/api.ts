@@ -2,6 +2,9 @@ import { apiClient } from '@/shared/lib';
 import { LeadItem } from './types';
 
 export const leadsApi = {
+  update: (id:string,input:{stage?:string;name?:string;phone?:string;preferredContact?:string})=>apiClient(`/leads/${id}`,{method:'PATCH',body:JSON.stringify(input)}),
+  assign: (id:string,assignedAgentId:string)=>apiClient(`/leads/${id}/assign`,{method:'POST',body:JSON.stringify({assignedAgentId})}),
+  addNote: (id:string,content:string)=>apiClient(`/leads/${id}/notes`,{method:'POST',body:JSON.stringify({content})}),
   list: async (
     paramsOrToken?: { stage?: string; page?: number; limit?: number } | string,
     maybeToken?: string

@@ -1,4 +1,6 @@
 'use client';
+import { LeadStageMove } from '@/modules/operations/LeadStageMove';
+import { CoreEditor } from '@/modules/operations/CoreEditor';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -45,6 +47,7 @@ export const LeadList: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState<LeadItem | null>(null);
+  useEffect(()=>{setSelectedLead(previous=>previous?leads.find(item=>item.id===previous.id)??previous:null);},[leads]);
   const params = useSearchParams();
   const router = useRouter();
   const viewMode = params.get('view') === 'pipeline' ? 'pipeline' : 'table';
@@ -326,7 +329,7 @@ export const LeadList: React.FC = () => {
                     </div>
                   ) : (
                     stageLeads.map((lead) => (
-                      <button
+                      <div key={lead.id} className="rounded-xl border border-slate-200 bg-white"><button
                         type="button"
                         key={lead.id}
                         onClick={() => setSelectedLead(lead)}
@@ -349,7 +352,7 @@ export const LeadList: React.FC = () => {
                             {lead.property.title}
                           </div>
                         )}
-                      </button>
+                      </button><LeadStageMove id={lead.id} stage={lead.stage} refresh={fetchLeads}/></div>
                     ))
                   )}
                 </div>
@@ -465,6 +468,7 @@ export const LeadList: React.FC = () => {
               )}
             </div>
           </div>
+          <CoreEditor kind="leads" id={selectedLead.id} refresh={fetchLeads}/>
         </Modal>
       )}
     </div>
