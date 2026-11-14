@@ -1,3 +1,4 @@
+import { saveDeal } from '@/modules/operations/core.service';
 import { dealsRepository, DealsRepository } from './deals.repository';
 import { CreateDealInput, UpdateDealInput, ListDealsQuery } from './deals.schema';
 import { ApiError } from '@/shared/errors';
@@ -18,12 +19,12 @@ export class DealsService {
   }
 
   async createDeal(agencyId: string, input: CreateDealInput) {
-    return this.repo.create(agencyId, input);
+    return saveDeal(agencyId, input);
   }
 
   async updateDeal(id: string, agencyId: string, input: UpdateDealInput) {
     await this.getDeal(id, agencyId);
-    return this.repo.update(id, agencyId, input);
+    return saveDeal(agencyId, input, id);
   }
 }
 

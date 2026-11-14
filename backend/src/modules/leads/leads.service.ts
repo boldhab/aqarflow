@@ -1,3 +1,4 @@
+import { transaction, requireReference } from '@/modules/operations/transaction';
 import { leadsRepository, LeadsRepository } from './leads.repository';
 import { CreateLeadInput, UpdateLeadInput, ListLeadsQuery } from './leads.schema';
 import { ApiError } from '@/shared/errors';
@@ -27,6 +28,7 @@ export class LeadsService {
 
   async createLead(user: UserContext, input: CreateLeadInput) {
     const assignedAgentId = user.role === 'AGENT' ? user.userId : input.assignedAgentId || input.assignedToId;
+    await transaction(async tx => {await requireReference(tx,'property',input.propertyId,user.agencyId);await requireReference(tx,'user',assignedAgentId,user.agencyId);});
     return this.repo.create(user.agencyId, {
       ...input,
       assignedAgentId,
@@ -35,11 +37,16 @@ export class LeadsService {
 
   async updateLead(id: string, user: UserContext, input: UpdateLeadInput) {
     await this.getLead(id, user);
+    if(user.role !== 'ADMIN' && (input.assignedAgentId !== undefined || input.assignedToId !== undefined)) throw ApiError.forbidden('Only administrators may reassign leads');
+    await transaction(async tx => {await requireReference(tx,'property',input.propertyId,user.agencyId);await requireReference(tx,'user',input.assignedAgentId??input.assignedToId,user.agencyId);});
     return this.repo.update(id, user.agencyId, input);
   }
 
   async assignLead(id: string, user: UserContext, assignedAgentId: string) {
     await this.getLead(id, user);
+    if(user.role !== 'ADMIN') throw ApiError.forbidden('Only administrators may assign leads');
+    if(!assignedAgentId)throw ApiError.badRequest('An agent is required');
+    await transaction(tx=>requireReference(tx,'user',assignedAgentId,user.agencyId));
     return this.repo.assign(id, user.agencyId, assignedAgentId);
   }
 
