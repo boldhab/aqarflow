@@ -4,34 +4,42 @@ export const visitStatusEnum = z.enum(['SCHEDULED', 'COMPLETED', 'CANCELLED']);
 
 export const createVisitSchema = z.object({
   body: z.object({
-    propertyId: z.string().uuid('Valid property ID is required'),
-    leadId: z.string().uuid('Valid lead ID is required'),
-    agentId: z.string().uuid().optional(),
+    propertyId: z.string().guid('Valid property ID is required'),
+    leadId: z.string().guid('Valid lead ID is required'),
+    agentId: z.string().guid().optional(),
     scheduledAt: z.string().datetime('Must be a valid ISO datetime string'),
-    notes: z.string().optional(),
+    durationMinutes: z.number().int().min(5).max(1440).optional(),
+    meetingPoint: z.string().max(300).optional(),
+    visitorCount: z.number().int().min(1).max(100).optional(),
+    outcomeNotes: z.string().max(2000).optional(),
+    notes: z.string().max(2000).optional(),
   }),
 });
 
 export const updateVisitSchema = z.object({
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
   }),
   body: z.object({
     scheduledAt: z.string().datetime().optional(),
     status: visitStatusEnum.optional(),
-    notes: z.string().optional(),
-    agentId: z.string().uuid().optional(),
+    durationMinutes: z.number().int().min(5).max(1440).optional(),
+    meetingPoint: z.string().max(300).optional(),
+    visitorCount: z.number().int().min(1).max(100).optional(),
+    outcomeNotes: z.string().max(2000).optional(),
+    notes: z.string().max(2000).optional(),
+    agentId: z.string().guid().optional(),
   }),
 });
 
 export const listVisitsQuerySchema = z.object({
   query: z.object({
     status: visitStatusEnum.optional(),
-    agentId: z.string().uuid().optional(),
-    leadId: z.string().uuid().optional(),
-    propertyId: z.string().uuid().optional(),
-    page: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 1)),
-    limit: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 20)),
+    agentId: z.string().guid().optional(),
+    leadId: z.string().guid().optional(),
+    propertyId: z.string().guid().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
   }),
 });
 
