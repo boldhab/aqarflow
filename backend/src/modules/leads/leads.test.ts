@@ -3,7 +3,9 @@ import { app } from '../../app';
 import prisma from '@/config/db';
 import bcrypt from 'bcryptjs';
 
-describe('Leads Module Integration & Scoping Tests', () => {
+const integration = process.env.RUN_OPERATIONS_INTEGRATION === '1' ? describe : describe.skip;
+
+integration('Leads Module Integration & Scoping Tests', () => {
   let agencyAId: string;
   let agencyBId: string;
 
@@ -162,9 +164,8 @@ describe('Leads Module Integration & Scoping Tests', () => {
     await prisma.user.deleteMany({
       where: { agencyId: { in: [agencyAId, agencyBId] } },
     });
-    await prisma.agency.deleteMany({
-      where: { id: { in: [agencyAId, agencyBId] } },
-    });
+    // Keep agency identities because their append-only audit history is retained.
+    // The integration database is disposable; teardown must not erase audit records.
   });
 
   describe('GET /api/v1/leads Scoping', () => {

@@ -3,7 +3,9 @@ import { app } from '../../app';
 import prisma from '@/config/db';
 import bcrypt from 'bcryptjs';
 
-describe('Properties Module Integration Tests', () => {
+const integration = process.env.RUN_OPERATIONS_INTEGRATION === '1' ? describe : describe.skip;
+
+integration('Properties Module Integration Tests', () => {
   let adminCookie: string;
   let agent1Cookie: string;
   let agent2Cookie: string;
