@@ -179,7 +179,7 @@ export class PropertiesService {
 
     for (let i = 0; i < validatedFiles.length; i++) {
       const vFile = validatedFiles[i];
-      const stored = await this.storage.uploadFile(vFile, 'properties');
+      const stored = await this.storage.uploadFile(vFile, `agencies/${user.agencyId}/properties/${id}`);
       const isPrimary = !hasExistingPrimary && i === 0;
       toCreate.push({
         url: stored.url,

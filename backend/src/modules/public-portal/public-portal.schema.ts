@@ -8,40 +8,25 @@ export const publicPropertiesQuerySchema = z.object({
       .enum(['APARTMENT', 'HOUSE', 'VILLA', 'PLOT', 'COMMERCIAL', 'OFFICE', 'SHOP'])
       .optional(),
     city: z.string().trim().optional(),
-    minPrice: z
-      .string()
-      .optional()
-      .transform((v) => (v ? parseFloat(v) : undefined)),
-    maxPrice: z
-      .string()
-      .optional()
-      .transform((v) => (v ? parseFloat(v) : undefined)),
-    bedrooms: z
-      .string()
-      .optional()
-      .transform((v) => (v ? parseInt(v, 10) : undefined)),
+    minPrice: z.coerce.number().finite().nonnegative().optional(),
+    maxPrice: z.coerce.number().finite().nonnegative().optional(),
+    bedrooms: z.coerce.number().int().nonnegative().optional(),
     search: z.string().trim().optional(),
     sort: z.enum(['newest', 'price_asc', 'price_desc']).default('newest'),
-    page: z
-      .string()
-      .optional()
-      .transform((v) => (v ? Math.max(1, parseInt(v, 10)) : 1)),
-    limit: z
-      .string()
-      .optional()
-      .transform((v) => (v ? Math.min(24, Math.max(1, parseInt(v, 10))) : 12)),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(24).default(12),
   }),
 });
 
 export const publicInquirySchema = z.object({
   body: z.object({
     name: z
-      .string({ required_error: 'Name is required' })
+      .string({ error: 'Name is required' })
       .trim()
       .min(2, 'Name must be at least 2 characters')
       .max(100, 'Name cannot exceed 100 characters'),
     phone: z
-      .string({ required_error: 'Phone number is required' })
+      .string({ error: 'Phone number is required' })
       .trim()
       .refine((val) => validateAndNormalizePakistaniPhone(val).isValid, {
         message: 'Must be a valid Pakistani phone number (e.g. 03001234567 or +923001234567)',
@@ -62,7 +47,7 @@ export const publicInquirySchema = z.object({
       .or(z.literal('')),
     propertyId: z
       .string()
-      .uuid('Invalid property ID')
+      .guid('Invalid property ID')
       .optional()
       .nullable()
       .or(z.literal('')),
